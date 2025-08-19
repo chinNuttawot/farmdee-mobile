@@ -1,0 +1,72 @@
+// app/_layout.tsx  (หรือ RootLayout.tsx)
+import React from "react";
+import { Stack } from "expo-router";
+import {
+  PaperProvider,
+  MD3LightTheme,
+  adaptNavigationTheme,
+} from "react-native-paper";
+import {
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  View,
+  Platform,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AuthProvider from "../context/AuthContext";
+
+// ---- THEME (Agriculture / Farm) ----
+const PRIMARY = "#3E9B4F";     // เขียวหลัก
+const BG = "#F6FBF6";          // เขียวจางเป็นพื้นหลัง
+const OUTLINE = "#C9DEC9";     // เส้นขอบโทนเขียว
+
+const farmTheme = {
+  ...MD3LightTheme,
+  roundness: 12,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: PRIMARY,
+    background: BG,
+    surface: "#FFFFFF",
+    outline: OUTLINE,
+  },
+};
+
+const queryClient = new QueryClient();
+
+export default function RootLayout() {
+  return (
+    <PaperProvider theme={farmTheme}>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            {/* SafeArea ด้านบนให้สีเข้ากับ StatusBar */}
+            <SafeAreaView style={[styles.topArea, { backgroundColor: PRIMARY }]}>
+              <StatusBar
+                barStyle="light-content"
+                backgroundColor={PRIMARY}         // Android
+                translucent={false}
+              />
+            </SafeAreaView>
+
+            {/* พื้นที่เนื้อหา ใช้สี background ของธีม */}
+            <View style={[styles.appArea, { backgroundColor: farmTheme.colors.background }]}>
+              <Stack screenOptions={{ headerShown: false }} />
+            </View>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </AuthProvider>
+    </PaperProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  topArea: {
+    // เฉพาะขอบบน ป้องกันการทับพื้นหลังทั้งหน้า
+  },
+  appArea: {
+    flex: 1,
+  },
+});
