@@ -14,7 +14,6 @@ export default function Header({ title, onBack, rightAction }: Props) {
   return (
     <Appbar.Header
       style={[styles.header, { backgroundColor: theme.colors.primary }]}
-      statusBarHeight={0}
     >
       {/* ปุ่มย้อนกลับ */}
       {onBack && <Appbar.BackAction color="white" onPress={onBack} />}

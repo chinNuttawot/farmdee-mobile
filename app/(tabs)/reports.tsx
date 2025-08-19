@@ -56,8 +56,6 @@ export default function Reports() {
     await FileSystem.writeAsStringAsync(uri, wbout, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    setSnack({ visible: true, msg: "บันทึกไฟล์แล้ว: report.xlsx" });
-
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, {
         mimeType:
