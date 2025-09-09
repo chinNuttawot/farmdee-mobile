@@ -34,6 +34,7 @@ export default function Header({ title, onBack, rightAction }: Props) {
 const styles = StyleSheet.create({
   header: {
     elevation: 4,
+    height: 40
   },
   title: {
     color: "white",
