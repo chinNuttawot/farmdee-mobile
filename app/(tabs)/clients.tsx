@@ -1,223 +1,150 @@
 // app/(tabs)/clients.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { View, StyleSheet, ScrollView } from "react-native";
 import {
-  View,
-  StyleSheet,
-  FlatList,
-  ListRenderItemInfo,
-  Linking,
-} from "react-native";
-import {
-  Button,
-  Dialog,
-  Portal,
-  TextInput,
-  Card,
-  Text,
   Avatar,
-  IconButton,
+  Card,
+  Divider,
+  List,
+  Text,
   useTheme,
-  Snackbar,
-  HelperText,
+  Button,
 } from "react-native-paper";
 import Header from "../../components/Header";
-import Empty from "../../components/Empty";
-
-type Client = {
-  id: string;
-  name: string;
-  phone?: string;
-  address?: string;
-};
 
 export default function Clients() {
   const theme = useTheme();
 
-  const [rows, setRows] = useState<Client[]>([]);
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-
-  // form
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
-    visible: false,
-    msg: "",
-  });
-
-  // mock load
-  const load = async () => {
-    setRows([
-      { id: "1", name: "ร้านผักบ้านสวน", phone: "0812345678", address: "อ.เมือง, เชียงใหม่" },
-      { id: "2", name: "ตลาดชุมชนวันพุธ", phone: "0891112222" },
-    ]);
-  };
-  useEffect(() => { load(); }, []);
-
-  const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return rows;
-    return rows.filter(
-      (c) =>
-        c.name.toLowerCase().includes(t) ||
-        c.phone?.includes(t) ||
-        c.address?.toLowerCase().includes(t)
-    );
-  }, [rows, q]);
-
-  const initial = (s: string) =>
-    s
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
-  const add = async () => {
-    if (!name.trim()) {
-      setSnack({ visible: true, msg: "กรุณากรอกชื่อ" });
-      return;
-    }
-    setRows((prev) => [
+  const menuItems = useMemo(
+    () => [
       {
-        id: String(Date.now()),
-        name: name.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
+        key: "payroll",
+        title: "จ่ายเงินเดือนพนักงาน",
+        onPress: () => {
+          // TODO: นำทางไปหน้าจ่ายเงินเดือน
+        },
       },
-      ...prev,
-    ]);
-    setName("");
-    setPhone("");
-    setAddress("");
-    setOpen(false);
-  };
-
-  const renderItem = ({ item }: ListRenderItemInfo<Client>) => (
-    <Card style={styles.card} elevation={2}>
-      <Card.Title
-        title={item.name}
-        titleNumberOfLines={1}
-        subtitle={
-          [item.phone ? `โทร: ${item.phone}` : "", item.address || ""]
-            .filter(Boolean)
-            .join(" • ")
-        }
-        left={(props) => (
-          <Avatar.Text
-            {...props}
-            size={42}
-            label={initial(item.name)}
-            style={{ backgroundColor: `${theme.colors.primary}20` }}
-            color={theme.colors.primary}
-          />
-        )}
-        right={() => (
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            {!!item.phone && (
-              <IconButton
-                icon="phone"
-                onPress={() => Linking.openURL(`tel:${item.phone}`)}
-              />
-            )}
-            <IconButton icon="map-marker-outline" onPress={() => {}} />
-          </View>
-        )}
-      />
-    </Card>
+      {
+        key: "evaluation",
+        title: "ประเมินพนักงาน",
+        onPress: () => {
+          // TODO: นำทางไปหน้าประเมิน
+        },
+      },
+      {
+        key: "salary-setting",
+        title: "ตั้งค่าเงินเดือนพนักงาน",
+        onPress: () => {
+          // TODO: นำทางไปหน้าตั้งค่าเงินเดือน
+        },
+      },
+      {
+        key: "stats",
+        title: "สถิติ & รายงาน",
+        onPress: () => {
+          // TODO: นำทางไปหน้ารายงาน
+        },
+      },
+    ],
+    []
   );
 
   return (
     <>
-      <Header title="ลูกค้า / โครงการ" />
+      <Header title="เพิ่มเติม" />
 
-      <FlatList
-        ListHeaderComponent={
-          <View style={styles.top}>
-            <TextInput
-              mode="outlined"
-              placeholder="ค้นหาชื่อ / เบอร์ / ที่อยู่"
-              value={q}
-              onChangeText={setQ}
-              left={<TextInput.Icon icon="magnify" />}
-            />
-            <Text style={{ marginTop: 8, opacity: 0.6 }}>
-              พบ {filtered.length} รายการ
-            </Text>
-          </View>
-        }
-        contentContainerStyle={{ padding: 16, paddingTop: 0, gap: 8 }}
-        data={filtered}
-        keyExtractor={(i) => i.id}
-        renderItem={renderItem}
-        ListEmptyComponent={<Empty />}
-      />
-
-      <View style={{ padding: 16 }}>
-        <Button mode="contained" onPress={() => setOpen(true)}>
-          + เพิ่มลูกค้า
-        </Button>
-      </View>
-
-      <Portal>
-        <Dialog
-          visible={open}
-          onDismiss={() => setOpen(false)}
-          style={{ borderRadius: 12 }}
-        >
-          <Dialog.Title>เพิ่มลูกค้า</Dialog.Title>
-          <Dialog.Content style={{ gap: 8 }}>
-            <TextInput
-              mode="outlined"
-              label="ชื่อ"
-              value={name}
-              onChangeText={setName}
-              left={<TextInput.Icon icon="account-outline" />}
-            />
-            <HelperText type="error" visible={!name.trim()}>
-              * จำเป็นต้องกรอกชื่อ
-            </HelperText>
-
-            <TextInput
-              mode="outlined"
-              label="เบอร์"
-              value={phone}
-              onChangeText={(t) => setPhone(t.replace(/[^\d]/g, ""))}
-              keyboardType="phone-pad"
-              left={<TextInput.Icon icon="phone" />}
-            />
-            <TextInput
-              mode="outlined"
-              label="ที่อยู่"
-              value={address}
-              onChangeText={setAddress}
-              left={<TextInput.Icon icon="home-outline" />}
-              multiline
-              numberOfLines={2}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setOpen(false)}>ยกเลิก</Button>
-            <Button mode="contained" onPress={add}>
-              บันทึก
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
-      <Snackbar
-        visible={snack.visible}
-        onDismiss={() => setSnack({ visible: false, msg: "" })}
-        duration={2200}
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { backgroundColor: `${theme.colors.primary}08` },
+        ]}
       >
-        {snack.msg}
-      </Snackbar>
+        {/* Profile Head (พื้นหลังเขียว + ชื่อ) */}
+        <Card style={[styles.profileCard, { backgroundColor: theme.colors.primary }]}>
+          <View style={styles.profileRow}>
+            <Avatar.Icon
+              size={48}
+              icon="account"
+              color={theme.colors.onPrimary}
+              style={{ backgroundColor: `${theme.colors.onPrimary}22` }}
+            />
+            <View style={{ marginLeft: 12 }}>
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onPrimary, fontWeight: "600" }}
+                numberOfLines={1}
+              >
+                นาย เอ สบายดี
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{ color: `${theme.colors.onPrimary}CC` }}
+              >
+                โปรไฟล์ของฉัน
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* การ์ดเมนู */}
+        <Card style={styles.menuCard} mode="elevated">
+          {menuItems.map((m, idx) => (
+            <View key={m.key}>
+              <List.Item
+                title={m.title}
+                onPress={m.onPress}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                titleNumberOfLines={1}
+              />
+              {idx < menuItems.length - 1 && <Divider />}
+            </View>
+          ))}
+
+          <Divider style={{ marginVertical: 2 }} />
+
+          {/* ออกจากระบบ (ตัวอักษรแดง) */}
+          <List.Item
+            title="ออกจากระบบ"
+            onPress={() => {
+              // TODO: เขียนลอจิก logout ที่นี่
+            }}
+            titleStyle={{ color: theme.colors.error, fontWeight: "600" }}
+            right={(props) => (
+              <List.Icon {...props} icon="chevron-right" color={theme.colors.error} />
+            )}
+          />
+        </Card>
+
+        {/* เว้นพื้นที่ด้านล่างให้สวยเหมือนมีแท็บบาร์ */}
+        <View style={{ height: 24 }} />
+
+        {/* ตัวอย่างปุ่มลัด (ไม่บังคับ) — ถ้าไม่ต้องการลบได้เลย */}
+        {/* <Button mode="text" onPress={() => {}} style={{ alignSelf: "center" }}>
+          เวอร์ชันแอป 1.0.0
+        </Button> */}
+      </ScrollView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  top: { padding: 16, paddingBottom: 8, gap: 8 },
-  card: { borderRadius: 16, marginBottom: 8 },
+  container: {
+    padding: 16,
+    paddingTop: 8,
+    flexGrow: 1,
+  },
+  profileCard: {
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 16,
+    elevation: 0,
+  },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuCard: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
 });
