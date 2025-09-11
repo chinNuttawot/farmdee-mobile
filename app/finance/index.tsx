@@ -173,9 +173,6 @@ export default function Finance() {
 
   return (
     <>
-      <Header title="ระบบการเงิน (ค่าแรง/ค่าวัสดุ/ค่าขนส่ง)" />
-
-      {/* Summary Section */}
       <FlatList
         data={list}
         keyExtractor={(i) => i.id}

@@ -146,8 +146,6 @@ export default function Rewards() {
 
   return (
     <>
-      <Header title="แต้มสะสม" />
-
       <FlatList
         data={list}
         keyExtractor={(i) => i.id}

@@ -66,7 +66,6 @@ export default function Reports() {
 
   return (
     <>
-      <Header title="สถิติ & รายงาน" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {/* Filter */}
         <SegmentedButtons

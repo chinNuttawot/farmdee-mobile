@@ -1,5 +1,15 @@
 // styles/ui.ts
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
+
+const shadow = Platform.select({
+    ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+    },
+    android: { elevation: 3 },
+});
 
 export const styles = StyleSheet.create({
     /* ===== Calendar (new look) ===== */
@@ -108,4 +118,188 @@ export const styles = StyleSheet.create({
     footerBtn: { flex: 1, borderRadius: 999 },
 
     fab: { position: "absolute", right: 20, bottom: 28, backgroundColor: "#6C63FF", elevation: 6 },
+    topBar: { padding: 16, paddingBottom: 0, gap: 6 },
+    summaryCard: {
+        borderRadius: 16,
+        backgroundColor: "white",
+    },
+    summaryHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    amountPill: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        backgroundColor: "#E8F5E9",
+    },
+    summaryRow: {
+        paddingVertical: 10,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    summaryLine: { flexDirection: "row", alignItems: "center", gap: 8 },
+    summaryLabel: { fontWeight: "700", opacity: 0.8 },
+    summaryValue: { fontWeight: "800", opacity: 0.9 },
+
+    chipsRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginTop: 10,
+    },
+
+    card: { borderRadius: 16 },
+    emptyWrap: {
+        padding: 24,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    actionRow: {
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        gap: 6,
+        marginTop: 4,
+    },
+    actionBtn: {
+        borderRadius: 12,
+        marginHorizontal: 2,
+        ...(shadow as any),
+    },
+
+    // FAB แบบในภาพ
+    fabWrap: {
+        position: "absolute",
+        right: 16,
+        bottom: 24,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 12,
+        padding: 8,
+        ...(Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.16,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 6 },
+            },
+            android: { elevation: 8 },
+        }) as any),
+    },
+    fabInside: {
+        backgroundColor: "#7C4DFF",
+        borderRadius: 28,
+    },
+
+    // ===== Modal styles (เวอร์ชัน UI เดิมสีพาสเทล) =====
+    dialog: {
+        borderRadius: 20,
+        backgroundColor: "#F9F7FF", // ม่วงอ่อน
+    },
+    dialogTitle: {
+        fontWeight: "800",
+    },
+    dialogContent: {
+        gap: 14,
+    },
+    fieldLabel: {
+        fontWeight: "600",
+        marginBottom: -6,
+    },
+    inputSoft: {
+        backgroundColor: "#F0F7EB", // เขียวอ่อน
+        borderRadius: 12,
+    },
+
+    // segmented look ด้วย Chip (เวอร์ชันเดิม)
+    segmentWrap: {
+        flexDirection: "row",
+        backgroundColor: "#ECE8FF",
+        padding: 4,
+        borderRadius: 12,
+        gap: 6,
+    },
+    segmentChip: {
+        flex: 1,
+        borderRadius: 10,
+        backgroundColor: "transparent",
+    },
+    segmentChipSelected: {
+        backgroundColor: "#FFFFFF",
+    },
+    segmentText: { textAlign: "center", color: "#6B6B6B", fontWeight: "700" },
+    segmentTextSelected: { color: "#7C4DFF" },
+
+    dialogActions: {
+        justifyContent: "space-between",
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+    },
+    btnCancel: {
+        flex: 1,
+        marginRight: 6,
+        borderRadius: 12,
+        borderColor: "#CFCFCF",
+    },
+    btnSave: {
+        flex: 1,
+        marginLeft: 6,
+        borderRadius: 12,
+        backgroundColor: "#2E7D32",
+    },
+
+    /* ===== AddExpenseDialog v2 (outlined) — ใช้กับเวอร์ชันใหม่ก็ได้ ===== */
+    dialogV2: {
+        borderRadius: 20,
+        backgroundColor: "#FFFFFF",
+    },
+    dialogTitleV2: {
+        fontWeight: "800",
+        paddingBottom: 0,
+    },
+    dialogContentV2: {
+        paddingTop: 6,
+    },
+    fieldLabelV2: {
+        marginTop: 6,
+        marginBottom: 6,
+        color: "#6B7280",
+        fontSize: 13,
+        fontWeight: "600",
+    },
+    inputOutlined: {
+        marginBottom: 10,
+        backgroundColor: "white",
+        borderRadius: 12,
+    },
+    segmentWrapV2: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 12,
+    },
+    segmentChipV2: {
+        borderWidth: 1,
+        backgroundColor: "#F3F4F6",
+        borderColor: "#E5E7EB",
+    },
+    segmentTextV2: {
+        color: "#374151",
+        fontWeight: "600",
+    },
+    dialogActionsV2: {
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+        justifyContent: "flex-end",
+        gap: 10,
+        flexDirection: "row",
+    },
+    btnV2: {
+        borderRadius: 10,
+    },
+    btnPrimaryV2: {
+        backgroundColor: "#2E7D32",
+    },
 });

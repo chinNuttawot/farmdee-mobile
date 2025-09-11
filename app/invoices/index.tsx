@@ -1,11 +1,6 @@
 // app/(tabs)/invoices.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  ListRenderItemInfo,
-} from "react-native";
+import { View, StyleSheet, FlatList, ListRenderItemInfo } from "react-native";
 import {
   Button,
   Card,
@@ -34,7 +29,7 @@ type Invoice = {
   tax: number;
   total: number;
   pdfPath: string;
-  createdAt: string;     // YYYY-MM-DD
+  createdAt: string; // YYYY-MM-DD
   status: "unpaid" | "paid";
   points: number;
 };
@@ -67,7 +62,9 @@ export default function Invoices() {
     // TODO: โหลดจากฐานข้อมูลจริง
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const add = async () => {
     if (!clientName.trim()) {
@@ -112,7 +109,11 @@ export default function Invoices() {
 
   const togglePaid = (id: string) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: r.status === "paid" ? "unpaid" : "paid" } : r))
+      prev.map((r) =>
+        r.id === id
+          ? { ...r, status: r.status === "paid" ? "unpaid" : "paid" }
+          : r
+      )
     );
   };
 
@@ -173,7 +174,10 @@ export default function Invoices() {
           </Chip>
 
           <View style={{ flexDirection: "row" }}>
-            <IconButton icon="share-variant" onPress={() => openPdf(item.pdfPath)} />
+            <IconButton
+              icon="share-variant"
+              onPress={() => openPdf(item.pdfPath)}
+            />
             <IconButton
               icon={item.status === "paid" ? "refresh" : "check"}
               onPress={() => togglePaid(item.id)}
@@ -186,8 +190,6 @@ export default function Invoices() {
 
   return (
     <>
-      <Header title="ใบแจ้งหนี้ / ใบเสร็จ (PDF)" />
-
       <FlatList
         data={rows}
         keyExtractor={(i) => i.id}
@@ -212,7 +214,11 @@ export default function Invoices() {
 
       {/* Dialog: create invoice */}
       <Portal>
-        <Dialog visible={open} onDismiss={() => setOpen(false)} style={{ borderRadius: 12 }}>
+        <Dialog
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          style={{ borderRadius: 12 }}
+        >
           <Dialog.Title>ออกใบแจ้งหนี้</Dialog.Title>
           <Dialog.Content style={{ gap: 8 }}>
             <TextInput

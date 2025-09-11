@@ -1,5 +1,5 @@
 // components/Tasks/TaskCard.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import { View } from "react-native";
 import {
   Card,
@@ -11,7 +11,7 @@ import {
   ProgressBar,
   IconButton,
 } from "react-native-paper";
-import { Task } from "../../lib/types";
+import { Task, StatusType } from "../../lib/types";
 import { STATUS_COLORS } from "../../lib/constants";
 import { formatLocalYYYYMMDD } from "../../lib/date";
 import { styles } from "../../styles/ui";
@@ -20,24 +20,40 @@ type Props = {
   task: Task;
   onEdit?: (t: Task) => void;
   onDelete?: (t: Task) => void;
+  onChangeStatus?: (t: Task, next: StatusType) => void;
+  onPress?: (t: Task) => void;
 };
 
-export default function TaskCard({ task, onEdit, onDelete }: Props) {
+const NEXT_STATUS: Record<Exclude<StatusType, "ทั้งหมด">, StatusType> = {
+  รอทำ: "กำลังทำ",
+  กำลังทำ: "เสร็จ",
+  เสร็จ: "รอทำ",
+};
+
+export default function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  onChangeStatus,
+  onPress,
+}: Props) {
+  const color = task.color || STATUS_COLORS[task.status];
+
   const left = (props: any) => (
     <Avatar.Icon
       {...props}
       icon={task.jobType === "งานซ่อม" ? "wrench" : "leaf"}
       size={40}
       color="white"
-      style={{ backgroundColor: task.color }}
+      style={{ backgroundColor: color }}
     />
   );
 
   const right = () => (
     <View style={{ alignItems: "flex-end" }}>
-      <Text
-        style={styles.amountText}
-      >{`฿ ${task.amount.toLocaleString()}`}</Text>
+      <Text style={styles.amountText}>
+        {`฿ ${Number(task.amount ?? 0).toLocaleString()}`}
+      </Text>
       <Badge
         style={[styles.badge, { backgroundColor: STATUS_COLORS[task.status] }]}
       >
@@ -47,9 +63,26 @@ export default function TaskCard({ task, onEdit, onDelete }: Props) {
   );
 
   const isEditable = task.status === "รอทำ" || task.status === "กำลังทำ";
+  const hasProgress = typeof task.progress === "number";
+  const progress = useMemo(
+    () => (hasProgress ? Math.max(0, Math.min(1, Number(task.progress))) : 0),
+    [hasProgress, task.progress]
+  );
+
+  const handleCycleStatus = () => {
+    const cur = task.status as Exclude<StatusType, "ทั้งหมด">;
+    const next = NEXT_STATUS[cur] ?? cur;
+    onChangeStatus?.(task, next);
+  };
 
   return (
-    <Card style={styles.taskCard} elevation={2}>
+    <Card
+      style={styles.taskCard}
+      elevation={2}
+      onPress={() => onPress?.(task)}
+      accessible
+      accessibilityRole="button"
+    >
       <Card.Title
         title={task.title}
         titleNumberOfLines={2}
@@ -69,6 +102,7 @@ export default function TaskCard({ task, onEdit, onDelete }: Props) {
             {task.jobType}
           </Chip>
         ) : null}
+
         {task.note ? (
           <Text style={{ color: "#6B7280" }}>{task.note}</Text>
         ) : null}
@@ -83,42 +117,59 @@ export default function TaskCard({ task, onEdit, onDelete }: Props) {
           </View>
         ) : null}
 
-        {typeof task.progress === "number" ? (
+        {hasProgress ? (
           <View style={{ marginTop: 4 }}>
-            <ProgressBar progress={task.progress} />
+            <ProgressBar progress={progress} />
           </View>
         ) : null}
       </Card.Content>
 
-      {/* ปุ่มแก้ไข/ลบ — เฉพาะ "รอทำ" และ "กำลังทำ" */}
-      {isEditable && (
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          gap: 8,
+          paddingHorizontal: 12,
+          paddingTop: 8,
+        }}
+      >
+        {/* เปลี่ยนสถานะ */}
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "flex-end",
-            gap: 8,
-            paddingHorizontal: 12,
-            paddingTop: 8,
+            backgroundColor: (color || "#9CA3AF") + "33",
+            borderRadius: 12,
           }}
         >
-          <View style={{ backgroundColor: "#FFE082", borderRadius: 12 }}>
-            <IconButton
-              icon="pencil"
-              size={18}
-              onPress={() => onEdit?.(task)}
-              accessibilityLabel="แก้ไขงาน"
-            />
-          </View>
-          <View style={{ backgroundColor: "#F8BBD0", borderRadius: 12 }}>
-            <IconButton
-              icon="trash-can"
-              size={18}
-              onPress={() => onDelete?.(task)}
-              accessibilityLabel="ลบงาน"
-            />
-          </View>
+          <IconButton
+            icon="repeat"
+            size={18}
+            onPress={handleCycleStatus}
+            accessibilityLabel="เปลี่ยนสถานะ"
+          />
         </View>
-      )}
+
+        {/* แก้ไข/ลบ */}
+        {isEditable && (
+          <>
+            <View style={{ backgroundColor: "#FFE082", borderRadius: 12 }}>
+              <IconButton
+                icon="pencil"
+                size={18}
+                onPress={() => onEdit?.(task)}
+                accessibilityLabel="แก้ไขงาน"
+              />
+            </View>
+            <View style={{ backgroundColor: "#F8BBD0", borderRadius: 12 }}>
+              <IconButton
+                icon="trash-can"
+                size={18}
+                onPress={() => onDelete?.(task)}
+                accessibilityLabel="ลบงาน"
+              />
+            </View>
+          </>
+        )}
+      </View>
 
       <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 12 }}>
         <Divider />

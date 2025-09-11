@@ -162,11 +162,11 @@ export default function Login() {
                   </Text>
                 </View>
 
-                <TouchableOpacity onPress={() => {}}>
+                {/* <TouchableOpacity onPress={() => {}}>
                   <Text style={[styles.link, { color: theme.colors.primary }]}>
                     ลืมรหัสผ่าน?
                   </Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
 
               <Button
@@ -182,7 +182,7 @@ export default function Login() {
             </Surface>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            {/* <View style={styles.footer}>
               <Text>ยังไม่มีบัญชี?</Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
                 <Text
@@ -194,7 +194,7 @@ export default function Login() {
                   สมัครใช้งาน
                 </Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </View>
         </ScrollView>
 

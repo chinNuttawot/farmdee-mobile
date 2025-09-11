@@ -1,26 +1,16 @@
-// app/_layout.tsx  (หรือ RootLayout.tsx)
+// app/_layout.tsx
 import React from "react";
 import { Stack } from "expo-router";
-import {
-  PaperProvider,
-  MD3LightTheme,
-  adaptNavigationTheme,
-} from "react-native-paper";
-import {
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  View,
-  Platform,
-} from "react-native";
+import { PaperProvider, MD3LightTheme } from "react-native-paper";
+import { SafeAreaView, StatusBar, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AuthProvider from "../context/AuthContext";
 
 // ---- THEME (Agriculture / Farm) ----
-const PRIMARY = "#3E9B4F";     // เขียวหลัก
-const BG = "#F6FBF6";          // เขียวจางเป็นพื้นหลัง
-const OUTLINE = "#C9DEC9";     // เส้นขอบโทนเขียว
+const PRIMARY = "#3E9B4F"; // เขียวหลัก
+const BG = "#F6FBF6"; // เขียวจางเป็นพื้นหลัง
+const OUTLINE = "#C9DEC9"; // เส้นขอบโทนเขียว
 
 const farmTheme = {
   ...MD3LightTheme,
@@ -43,17 +33,66 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             {/* SafeArea ด้านบนให้สีเข้ากับ StatusBar */}
-            <SafeAreaView style={[styles.topArea, { backgroundColor: PRIMARY }]}>
+            <SafeAreaView
+              style={[styles.topArea, { backgroundColor: PRIMARY }]}
+            >
               <StatusBar
                 barStyle="light-content"
-                backgroundColor={PRIMARY}         // Android
+                backgroundColor={PRIMARY}
                 translucent={false}
               />
             </SafeAreaView>
 
             {/* พื้นที่เนื้อหา ใช้สี background ของธีม */}
-            <View style={[styles.appArea, { backgroundColor: farmTheme.colors.background }]}>
-              <Stack screenOptions={{ headerShown: false }} />
+            <View
+              style={[
+                styles.appArea,
+                { backgroundColor: farmTheme.colors.background },
+              ]}
+            >
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* กลุ่มแท็บล่าง */}
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+                {/* ===== 4 หน้าที่แยกเป็น Stack Navigation ===== */}
+                <Stack.Screen
+                  name="reports/index"
+                  options={{
+                    title: "รายงาน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="finance/index"
+                  options={{
+                    title: "การเงิน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="invoices/index"
+                  options={{
+                    title: "ใบแจ้งหนี้",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="rewards/index"
+                  options={{
+                    title: "แต้มสะสม",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                {/* ========================================== */}
+              </Stack>
             </View>
           </GestureHandlerRootView>
         </QueryClientProvider>
@@ -63,10 +102,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  topArea: {
-    // เฉพาะขอบบน ป้องกันการทับพื้นหลังทั้งหน้า
-  },
-  appArea: {
-    flex: 1,
-  },
+  topArea: {},
+  appArea: { flex: 1 },
 });

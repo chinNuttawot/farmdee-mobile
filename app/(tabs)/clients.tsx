@@ -1,4 +1,5 @@
 // app/(tabs)/clients.tsx
+import Header from "@/components/Header";
 import React, { useMemo } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import {
@@ -8,9 +9,8 @@ import {
   List,
   Text,
   useTheme,
-  Button,
 } from "react-native-paper";
-import Header from "../../components/Header";
+import { router } from "expo-router"; // ✅ ใช้สำหรับนำทาง
 
 export default function Clients() {
   const theme = useTheme();
@@ -20,108 +20,87 @@ export default function Clients() {
       {
         key: "payroll",
         title: "จ่ายเงินเดือนพนักงาน",
-        onPress: () => {
-          // TODO: นำทางไปหน้าจ่ายเงินเดือน
-        },
+        onPress: () => router.push("/finance"), // ✅ ไปหน้า การเงิน
       },
       {
         key: "evaluation",
         title: "ประเมินพนักงาน",
-        onPress: () => {
-          // TODO: นำทางไปหน้าประเมิน
-        },
+        onPress: () => router.push("/reports"), // ✅ ไปหน้า รายงาน (ใช้แทนหน้าประเมิน)
       },
       {
         key: "salary-setting",
         title: "ตั้งค่าเงินเดือนพนักงาน",
-        onPress: () => {
-          // TODO: นำทางไปหน้าตั้งค่าเงินเดือน
-        },
+        onPress: () => router.push("/invoices"), // ✅ ไปหน้า ใบแจ้งหนี้ (ตัวอย่างปลายทาง)
       },
       {
         key: "stats",
         title: "สถิติ & รายงาน",
-        onPress: () => {
-          // TODO: นำทางไปหน้ารายงาน
-        },
+        onPress: () => router.push("/reports"), // ✅ ไปหน้า รายงาน
       },
     ],
     []
   );
 
+  const ProfileRender = (
+    <View style={[styles.topGreen, { backgroundColor: theme.colors.primary }]}>
+      <View style={styles.profileRow}>
+        <Avatar.Icon
+          size={40}
+          icon="account"
+          color={theme.colors.onPrimary}
+          style={{ backgroundColor: `${theme.colors.onPrimary}22` }}
+        />
+        <View style={{ marginLeft: 12 }}>
+          <Text
+            variant="titleMedium"
+            style={{ color: theme.colors.onPrimary, fontWeight: "700" }}
+            numberOfLines={1}
+          >
+            นาย เอ สบายดี
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <>
-      <Header title="เพิ่มเติม" />
-
+      <Header backgroundColor="#2E7D32" color="white" />
+      {ProfileRender}
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { backgroundColor: `${theme.colors.primary}08` },
+          { backgroundColor: `${theme.colors.primary}14` },
         ]}
       >
-        {/* Profile Head (พื้นหลังเขียว + ชื่อ) */}
-        <Card style={[styles.profileCard, { backgroundColor: theme.colors.primary }]}>
-          <View style={styles.profileRow}>
-            <Avatar.Icon
-              size={48}
-              icon="account"
-              color={theme.colors.onPrimary}
-              style={{ backgroundColor: `${theme.colors.onPrimary}22` }}
-            />
-            <View style={{ marginLeft: 12 }}>
-              <Text
-                variant="titleMedium"
-                style={{ color: theme.colors.onPrimary, fontWeight: "600" }}
-                numberOfLines={1}
-              >
-                นาย เอ สบายดี
-              </Text>
-              <Text
-                variant="bodySmall"
-                style={{ color: `${theme.colors.onPrimary}CC` }}
-              >
-                โปรไฟล์ของฉัน
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* การ์ดเมนู */}
-        <Card style={styles.menuCard} mode="elevated">
+        <Card style={styles.menuCard} mode="contained">
           {menuItems.map((m, idx) => (
             <View key={m.key}>
               <List.Item
                 title={m.title}
                 onPress={m.onPress}
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.item}
                 titleNumberOfLines={1}
               />
               {idx < menuItems.length - 1 && <Divider />}
             </View>
           ))}
 
-          <Divider style={{ marginVertical: 2 }} />
+          <Divider />
 
-          {/* ออกจากระบบ (ตัวอักษรแดง) */}
+          {/* ออกจากระบบ */}
           <List.Item
             title="ออกจากระบบ"
             onPress={() => {
-              // TODO: เขียนลอจิก logout ที่นี่
+              // ตัวอย่าง: router.replace("/(auth)/login");
             }}
-            titleStyle={{ color: theme.colors.error, fontWeight: "600" }}
-            right={(props) => (
-              <List.Icon {...props} icon="chevron-right" color={theme.colors.error} />
-            )}
+            titleStyle={{ color: theme.colors.error, fontWeight: "700" }}
+            style={styles.item}
           />
         </Card>
 
-        {/* เว้นพื้นที่ด้านล่างให้สวยเหมือนมีแท็บบาร์ */}
         <View style={{ height: 24 }} />
-
-        {/* ตัวอย่างปุ่มลัด (ไม่บังคับ) — ถ้าไม่ต้องการลบได้เลย */}
-        {/* <Button mode="text" onPress={() => {}} style={{ alignSelf: "center" }}>
-          เวอร์ชันแอป 1.0.0
-        </Button> */}
       </ScrollView>
     </>
   );
@@ -130,14 +109,12 @@ export default function Clients() {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    paddingTop: 8,
+    paddingTop: 12,
     flexGrow: 1,
   },
-  profileCard: {
-    borderRadius: 12,
-    marginBottom: 12,
-    padding: 16,
-    elevation: 0,
+  topGreen: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   profileRow: {
     flexDirection: "row",
@@ -146,5 +123,10 @@ const styles = StyleSheet.create({
   menuCard: {
     borderRadius: 12,
     overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  item: {
+    height: 52,
+    justifyContent: "center",
   },
 });

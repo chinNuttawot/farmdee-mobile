@@ -24,18 +24,26 @@ import { ASSIGNEE_OPTIONS, STATUS_COLORS } from "../../lib/constants";
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
 import AssigneePickerModal from "./AssigneePickerModal";
 
+// ✅ ขยายชนิด task ที่จะส่งออก/รับเข้า modal
+export type TaskWithMeta = Task & {
+  area?: number;
+  trucks?: number;
+  paid?: number;
+};
+
 type CreateTaskForm = {
   title: string;
   jobType: JobType;
   start: string;
   end: string;
-  area: string;
-  trucks: string;
-  assignees: AssigneeConfig[]; // state ภายใน modal รายชื่อ (รีเซ็ต)
-  selectedAssignees: string[]; // ชื่อที่เลือกไว้
-  paid: string;
+  area: string; // เก็บเป็น string สำหรับ input
+  trucks: string; // เก็บเป็น string สำหรับ input
+  assignees: AssigneeConfig[];
+  selectedAssignees: string[];
+  paid: string; // เก็บเป็น string สำหรับ input
   total: string;
   detail: string;
+  progress: string; // 0..1
 };
 
 export default function CreateTaskModal({
@@ -43,17 +51,21 @@ export default function CreateTaskModal({
   onClose,
   defaultDate,
   onSubmit,
+  initialTask,
 }: {
   open: boolean;
   onClose: () => void;
   defaultDate: Date;
-  onSubmit: (task: Task) => void;
+  onSubmit: (task: TaskWithMeta) => void;
+  initialTask?: TaskWithMeta;
 }) {
-  const makeDefaultAssignees = (): AssigneeConfig[] =>
+  const makeDefaultAssignees = (
+    selectedNames: string[] = []
+  ): AssigneeConfig[] =>
     ASSIGNEE_OPTIONS.map((name) => ({
       name,
       isDaily: name === "นาย B",
-      selected: false,
+      selected: selectedNames.includes(name),
       useDefault: true,
       pricePerUnit: "",
       pricePerHour: "",
@@ -72,6 +84,7 @@ export default function CreateTaskModal({
     paid: "",
     total: "",
     detail: "",
+    progress: "0",
   });
 
   const [form, setForm] = useState<CreateTaskForm>(
@@ -80,52 +93,109 @@ export default function CreateTaskModal({
   const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<"start" | "end" | null>(null);
 
-  // เปิด modal สร้างงานเมื่อไหร่ → เคลียร์ฟอร์มให้ใหม่เสมอ
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    if (initialTask) {
+      const selected = initialTask.tags ?? [];
+      setForm({
+        title: initialTask.title ?? "",
+        jobType: (initialTask.jobType as JobType) || "งานไร่",
+        start: formatLocalYYYYMMDD(initialTask.startDate ?? defaultDate),
+        end: formatLocalYYYYMMDD(initialTask.endDate ?? defaultDate),
+        // ✅ prefill 3 ช่องนี้จาก task เดิม (ถ้ามี)
+        area:
+          initialTask.area != null && Number.isFinite(initialTask.area)
+            ? String(initialTask.area)
+            : "",
+        trucks:
+          initialTask.trucks != null && Number.isFinite(initialTask.trucks)
+            ? String(initialTask.trucks)
+            : "",
+        assignees: makeDefaultAssignees(selected),
+        selectedAssignees: selected,
+        paid:
+          initialTask.paid != null && Number.isFinite(initialTask.paid)
+            ? String(initialTask.paid)
+            : "",
+        total:
+          initialTask.amount != null && Number.isFinite(initialTask.amount)
+            ? String(initialTask.amount)
+            : "",
+        detail: initialTask.note ?? "",
+        progress:
+          typeof initialTask.progress === "number"
+            ? String(Math.max(0, Math.min(1, Number(initialTask.progress))))
+            : "0",
+      });
+    } else {
       setForm(makeDefaultForm(defaultDate));
-      setAssigneeModalOpen(false);
-      setPickerFor(null);
     }
-  }, [open, defaultDate]);
+    setAssigneeModalOpen(false);
+    setPickerFor(null);
+  }, [open, defaultDate, initialTask]);
 
   const resetFormAndClose = () => {
     setForm(makeDefaultForm(defaultDate));
     onClose();
   };
 
+  const toNumber = (s: string) => {
+    const n = Number((s || "").replace(/[^\d.]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const toInt = (s: string) => {
+    const n = parseInt((s || "").replace(/[^\d]/g, ""), 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const toProgress = (s: string) => {
+    const n = Number((s || "").replace(/[^\d.]/g, ""));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+  };
+
   const save = () => {
     const startD = new Date(form.start);
     const endD = new Date(form.end);
-    const amount = Number(form.total || 0);
-    const newTask: Task = {
-      id: `user-${Date.now()}`,
-      title: form.title || "งานใหม่",
+    const amount = toNumber(form.total);
+    const progress = toProgress(form.progress);
+
+    const isEdit = !!initialTask;
+    const baseStatus = isEdit ? initialTask!.status : "รอทำ";
+    const baseColor = isEdit ? initialTask!.color : STATUS_COLORS["รอทำ"];
+
+    const newTask: TaskWithMeta = {
+      id: isEdit ? initialTask!.id : `user-${Date.now()}`,
+      title: form.title || (isEdit ? initialTask!.title : "งานใหม่"),
       amount,
-      status: "รอทำ",
-      color: STATUS_COLORS["รอทำ"],
+      status: baseStatus,
+      color: baseColor,
       startDate: startD,
       endDate: endD,
       jobType: form.jobType,
       note: form.detail || undefined,
       tags: form.selectedAssignees.length ? form.selectedAssignees : undefined,
-      progress: 0.1,
+      progress,
+      // ✅ เก็บ meta ลง task ทุกครั้ง (ทั้ง create/edit)
+      area: form.area ? Number(form.area) : undefined, // เป็นทศนิยมได้
+      trucks: form.trucks ? toInt(form.trucks) : undefined, // เป็นจำนวนเต็ม
+      paid: form.paid ? toNumber(form.paid) : undefined,
     };
+
     onSubmit(newTask);
-    resetFormAndClose(); // เคลียร์แล้วปิด
+    resetFormAndClose();
   };
 
-  const assigneeSummary = form.selectedAssignees.length
-    ? form.selectedAssignees.join(", ")
-    : "แตะเพื่อเลือก";
+  const assigneeSummary =
+    form.selectedAssignees.length > 0
+      ? form.selectedAssignees.join(", ")
+      : "แตะเพื่อเลือก";
+
+  const headerText = initialTask ? "แก้ไขงาน" : "สร้างงานใหม่";
 
   return (
     <Portal>
-      <Modal
-        visible={open}
-        // onDismiss={resetFormAndClose}
-        contentContainerStyle={styles.createModal}
-      >
+      <Modal visible={open} contentContainerStyle={styles.createModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
@@ -134,7 +204,7 @@ export default function CreateTaskModal({
               variant="titleMedium"
               style={{ fontWeight: "800", marginBottom: 8 }}
             >
-              สร้างงานใหม่
+              {headerText}
             </Text>
 
             <TextInput
@@ -236,6 +306,7 @@ export default function CreateTaskModal({
               right={<TextInput.Affix text="฿" />}
               style={styles.input}
             />
+
             <TextInput
               mode="outlined"
               label="จำนวนเงิน (ยอดเต็ม)"
@@ -248,6 +319,7 @@ export default function CreateTaskModal({
               right={<TextInput.Affix text="฿" />}
               style={styles.input}
             />
+
             <TextInput
               mode="outlined"
               label="รายละเอียดงาน"
@@ -255,6 +327,19 @@ export default function CreateTaskModal({
               onChangeText={(v) => setForm({ ...form, detail: v })}
               style={[styles.input, { height: 120 }]}
               multiline
+            />
+
+            <Text style={styles.sectionLabel}>ความคืบหน้า (0 - 1)</Text>
+            <TextInput
+              mode="outlined"
+              label="Progress"
+              value={form.progress}
+              onChangeText={(v) =>
+                setForm({ ...form, progress: v.replace(/[^0-9.]/g, "") })
+              }
+              keyboardType="numeric"
+              right={<TextInput.Affix text="/1" />}
+              style={styles.input}
             />
 
             <View style={styles.footerRow}>
@@ -313,7 +398,11 @@ export default function CreateTaskModal({
           initial={form.assignees}
           onConfirm={(cfgs) => {
             const names = cfgs.filter((a) => a.selected).map((a) => a.name);
-            setForm((f) => ({ ...f, selectedAssignees: names }));
+            setForm((f) => ({
+              ...f,
+              assignees: cfgs,
+              selectedAssignees: names,
+            }));
             setAssigneeModalOpen(false);
           }}
           onResetInitial={() => {
