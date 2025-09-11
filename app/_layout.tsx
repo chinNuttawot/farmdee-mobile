@@ -51,10 +51,7 @@ export default function RootLayout() {
               ]}
             >
               <Stack screenOptions={{ headerShown: false }}>
-                {/* กลุ่มแท็บล่าง */}
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-                {/* ===== 4 หน้าที่แยกเป็น Stack Navigation ===== */}
                 <Stack.Screen
                   name="reports/index"
                   options={{
@@ -91,7 +88,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-                {/* ========================================== */}
               </Stack>
             </View>
           </GestureHandlerRootView>
