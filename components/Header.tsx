@@ -19,11 +19,13 @@ export default function Header({ title, onBack, rightAction }: Props) {
       {onBack && <Appbar.BackAction color="white" onPress={onBack} />}
 
       {/* ชื่อ Title */}
-      <Appbar.Content
-        title={title}
-        titleStyle={styles.title}
-        style={{ alignItems: "center", justifyContent: "center" }}
-      />
+      {title && (
+        <Appbar.Content
+          title={title}
+          titleStyle={styles.title}
+          style={{ alignItems: "center", justifyContent: "center" }}
+        />
+      )}
 
       {/* ปุ่มด้านขวา */}
       {rightAction}
@@ -34,7 +36,7 @@ export default function Header({ title, onBack, rightAction }: Props) {
 const styles = StyleSheet.create({
   header: {
     elevation: 4,
-    height: 40
+    height: 0,
   },
   title: {
     color: "white",

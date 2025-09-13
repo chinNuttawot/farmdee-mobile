@@ -15,48 +15,7 @@ import { useRouter } from "expo-router";
 export default function Clients() {
   const theme = useTheme();
   const router = useRouter();
-  const menuItems = useMemo(
-    () => [
-      {
-        key: "payroll",
-        title: "จ่ายเงินเดือนพนักงาน",
-        onPress: () =>
-          router.push({
-            pathname: "/employee",
-            params: { menuName: "salary" },
-          }),
-      },
-      {
-        key: "evaluation",
-        title: "ประเมินพนักงาน",
-        onPress: () =>
-          router.push({
-            pathname: "/employee",
-            params: { menuName: "evaluateEmployee" },
-          }),
-      },
-      {
-        key: "salary-setting",
-        title: "ตั้งค่าเงินเดือนพนักงาน",
-        onPress: () =>
-          router.push({
-            pathname: "/employee",
-            params: { menuName: "configSalary" },
-          }),
-      },
-      {
-        key: "stats",
-        title: "สถิติ & รายงาน",
-        onPress: () => router.push("/reports"),
-      },
-      {
-        key: "announcement",
-        title: "ประกาศ",
-        onPress: () => router.push("/announcementSceen"),
-      },
-    ],
-    []
-  );
+  const menuItems = useMemo(() => [], []);
 
   const ProfileRender = (
     <View style={[styles.topGreen, { backgroundColor: theme.colors.primary }]}>

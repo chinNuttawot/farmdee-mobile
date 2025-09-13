@@ -25,35 +25,25 @@ export default function Login() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [email, setEmail] = useState("owner@example.com");
-  const [password, setPassword] = useState("123456");
+  const [user, setUser] = useState("a1");
+  const [password, setPassword] = useState("1");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [touched, setTouched] = useState({ email: false, password: false });
+  const [touched, setTouched] = useState({ user: false, password: false });
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
     visible: false,
     msg: "",
   });
 
-  const emailErr =
-    touched.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const passErr = touched.password && password.trim().length < 6;
-
-  const isValid = useMemo(
-    () => !!email && !!password && !emailErr && !passErr,
-    [email, password, emailErr, passErr]
-  );
-
   const submit = async () => {
-    if (!isValid) {
-      setSnack({ visible: true, msg: "กรุณากรอกข้อมูลให้ถูกต้องครบถ้วน" });
-      return;
-    }
     try {
       setLoading(true);
-      // TODO: call API
-      router.replace("/(tabs)/dashboard");
+      if (user === "a1") {
+        router.replace("/(tabs)/dashboard");
+      } else if (user === "a2") {
+        router.replace("/(employee)/emp-dashboard");
+      }
     } catch (e: any) {
       setSnack({ visible: true, msg: e?.message ?? "เกิดข้อผิดพลาด" });
     } finally {
@@ -111,20 +101,17 @@ export default function Login() {
               <TextInput
                 mode="outlined"
                 label="อีเมล"
-                value={email}
-                onChangeText={setEmail}
-                onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                value={user}
+                onChangeText={setUser}
+                onBlur={() => setTouched((t) => ({ ...t, user: true }))}
                 autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
+                keyboardType="user-address"
+                autoComplete="user"
                 textContentType="emailAddress"
                 returnKeyType="next"
                 left={<TextInput.Icon icon="sprout-outline" />}
                 style={styles.input}
               />
-              <HelperText type="error" visible={!!emailErr}>
-                กรุณากรอกอีเมลให้ถูกต้อง
-              </HelperText>
 
               <TextInput
                 mode="outlined"
@@ -147,9 +134,6 @@ export default function Login() {
                 }
                 style={styles.input}
               />
-              <HelperText type="error" visible={!!passErr}>
-                รหัสผ่านอย่างน้อย 6 ตัวอักษร
-              </HelperText>
 
               <View style={styles.row}>
                 <View style={styles.rowLeft}>
@@ -157,9 +141,7 @@ export default function Login() {
                     status={remember ? "checked" : "unchecked"}
                     onPress={() => setRemember((v) => !v)}
                   />
-                  <Text onPress={() => setRemember((v) => !v)}>
-                    จดจำฉันไว้
-                  </Text>
+                  <Text onPress={() => setRemember((v) => !v)}>จดจำฉันไว้</Text>
                 </View>
 
                 {/* <TouchableOpacity onPress={() => {}}>
@@ -173,7 +155,7 @@ export default function Login() {
                 mode="contained"
                 onPress={submit}
                 loading={loading}
-                disabled={!isValid || loading}
+                disabled={loading}
                 style={styles.cta}
                 contentStyle={{ height: 52 }}
               >

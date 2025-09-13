@@ -50,8 +50,23 @@ export default function RootLayout() {
                 { backgroundColor: farmTheme.colors.background },
               ]}
             >
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  // ✅ ซ่อนชื่อที่แสดงข้างปุ่ม Back บน iOS ทุกหน้า
+                  headerBackTitleVisible: false,
+                  // เสริม: ไม่โชว์เงา header และจัดกึ่งกลาง title เวลามี header
+                  headerShadowVisible: false,
+                  headerTitleAlign: "center",
+                }}
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="(employee)"
+                  options={{ headerShown: false }}
+                />
                 <Stack.Screen
                   name="reports/index"
                   options={{
@@ -61,8 +76,9 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
+
                 <Stack.Screen
-                  name="finance/index"
+                  name="salary/index"
                   options={{
                     title: "การเงิน",
                     headerShown: true,
@@ -70,6 +86,57 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
+
+                <Stack.Screen
+                  name="reportsMonthlyScreen/index"
+                  options={{
+                    title: "รายเดือน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+
+                <Stack.Screen
+                  name="configSalary/index"
+                  options={({ route }) => ({
+                    title: route.params?.employeeName ?? "",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  })}
+                />
+
+                <Stack.Screen
+                  name="evaluateEmployee/index"
+                  options={({ route }) => ({
+                    title: route.params?.employeeName ?? "",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  })}
+                />
+
+                <Stack.Screen
+                  name="employee/index"
+                  options={{
+                    title: "รายชื่อพนักงาน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+
+                <Stack.Screen
+                  name="announcementSceen/index"
+                  options={{
+                    title: "ประกาศ",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+
                 <Stack.Screen
                   name="invoices/index"
                   options={{
@@ -79,6 +146,7 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
+
                 <Stack.Screen
                   name="rewards/index"
                   options={{

@@ -10,7 +10,7 @@ import {
   Modal,
   Button,
   useTheme,
-  Icon, // ✅ ใช้ Icon ของ react-native-paper เพื่อคุมขนาดไอคอนใน Chip
+  Icon,
 } from "react-native-paper";
 import { MONTH_NAMES } from "../../lib/constants";
 import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
@@ -73,7 +73,6 @@ export default function MiniCalendar({
               style={s.yearChip}
               textStyle={s.yearChipText}
               onPress={() => setYearPickerOpen(true)}
-              // ✅ คุมขนาดไอคอนให้เล็กลงและจัดกึ่งกลางสวย ๆ
               left={(props) => (
                 <Icon
                   {...props}
@@ -90,23 +89,23 @@ export default function MiniCalendar({
         </View>
 
         {/* Weekdays */}
-        <View style={s.calWeekRow}>
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <Text key={d} style={s.calWeekday}>
+        <View style={s.row7}>
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+            <Text key={d} style={s.weekCell}>
               {d}
             </Text>
           ))}
         </View>
 
         {/* Grid */}
-        <View style={s.calGrid}>
+        <View style={s.grid7}>
           {cells.map(({ date, isCurrentMonth }, idx) => {
             const isToday = isSameDay(date, today);
             const isSelected = isSameDay(date, value);
             return (
               <TouchableOpacity
                 key={idx}
-                style={s.calCell}
+                style={s.dayCell}
                 onPress={() => selectDate(date)}
                 activeOpacity={0.75}
               >
@@ -147,8 +146,6 @@ export default function MiniCalendar({
           <Text variant="titleMedium" style={s.yearTitle}>
             เลือกปี
           </Text>
-
-          {/* เลื่อนรายการปีได้ ไม่ตกหน้าจอ */}
           <ScrollView style={{ maxHeight: 300 }}>
             {Array.from(
               { length: 41 },
@@ -167,7 +164,6 @@ export default function MiniCalendar({
               </Button>
             ))}
           </ScrollView>
-
           <View style={s.yearActions}>
             <Button onPress={() => setYearPickerOpen(false)}>ปิด</Button>
           </View>
@@ -177,10 +173,9 @@ export default function MiniCalendar({
   );
 }
 
-/** ==== Compact Styles (ประมาณ 85–90% ของเดิม) ==== */
-const CELL = 36;
-const CIRCLE = 28;
-const GAP = 4;
+/** ===== Styles: 7 คอลัมน์เท่ากัน เป๊ะตามรูปที่ 2 ===== */
+const GAP = 6; // ช่องว่างแนวตั้ง/แนวนอน
+const COL_W = "14.2857%"; // 100 / 7
 
 const s = StyleSheet.create({
   calCard: {
@@ -196,7 +191,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingBottom: 12, // ⬆️ เพิ่มช่องว่าง กันชิปตกชนแถววัน
+    paddingBottom: 12,
   },
   calHeaderCenter: {
     alignItems: "center",
@@ -205,72 +200,58 @@ const s = StyleSheet.create({
   calMonth: {
     fontSize: 18,
     fontWeight: "800",
-    marginBottom: 6, // เว้นกับชิปมากขึ้นเล็กน้อย
+    marginBottom: 6,
   },
-  yearChip: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-  },
-  yearChipText: {
-    fontWeight: "700",
-  },
+  yearChip: { borderRadius: 12, paddingHorizontal: 10 },
+  yearChipText: { fontWeight: "700" },
 
-  calWeekRow: {
+  // ===== หัวตาราง 7 ช่อง =====
+  row7: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8, // ⬆️ เพิ่ม margin ป้องกันการชนแน่นอน
+    flexWrap: "wrap",
+    marginHorizontal: -(GAP / 2),
+    marginTop: 6,
     marginBottom: 2,
-    paddingHorizontal: 2,
   },
-  calWeekday: {
-    width: CELL,
+  weekCell: {
+    width: COL_W,
+    paddingHorizontal: GAP / 2,
     textAlign: "center",
     fontSize: 11,
     opacity: 0.7,
   },
 
-  calGrid: {
+  // ===== กริด 7 คอลัมน์ =====
+  grid7: {
     flexDirection: "row",
     flexWrap: "wrap",
-    rowGap: GAP,
-    columnGap: GAP,
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
+    marginHorizontal: -(GAP / 2),
+    marginTop: 2,
   },
-  calCell: {
-    width: CELL,
-    height: CELL,
+  dayCell: {
+    width: COL_W,
+    paddingHorizontal: GAP / 2,
+    paddingVertical: GAP / 2,
     alignItems: "center",
     justifyContent: "center",
-  },
-  calCircle: {
-    width: CIRCLE,
-    height: CIRCLE,
-    borderRadius: CIRCLE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  calCircleToday: {
-    backgroundColor: "#DBEAFE",
-  },
-  calCircleSelected: {
-    borderWidth: 2,
-    borderColor: "#2563EB",
   },
 
-  calDayText: {
-    fontSize: 13,
-    fontWeight: "600",
+  calCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  calCircleToday: { backgroundColor: "#DBEAFE" },
+  calCircleSelected: { borderWidth: 2, borderColor: "#2563EB" },
+
+  calDayText: { fontSize: 13, fontWeight: "600" },
   calDayMuted: { opacity: 0.35 },
   calDaySelectedText: { color: "#2563EB", fontWeight: "800" },
   calDayTodayText: { color: "#2563EB", fontWeight: "700" },
 
-  yearModal: {
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: 12,
-  },
+  yearModal: { marginHorizontal: 20, padding: 14, borderRadius: 12 },
   yearTitle: { marginBottom: 6, fontWeight: "700" },
   yearActions: {
     flexDirection: "row",
