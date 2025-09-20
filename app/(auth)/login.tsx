@@ -24,8 +24,8 @@ export default function Login() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [user, setUser] = useState("");
-  const [password, setPassword] = useState("");
+  const [user, setUser] = useState("boss1");
+  const [password, setPassword] = useState("Passw0rd!");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -42,10 +42,10 @@ export default function Login() {
         username: user,
         password: password,
       });
-      const profile = await Profile();
-      if (profile.role === "boss") {
+      const { user: userProfile } = await Profile();
+      if (userProfile.role === "boss") {
         router.replace("/(tabs)/dashboard");
-      } else if (profile.role === "user") {
+      } else if (userProfile.role === "user") {
         router.replace("/(employee)/emp-dashboard");
       }
     } catch (e: any) {

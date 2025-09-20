@@ -13,7 +13,7 @@ import {
 } from "react-native-paper";
 import { Task, StatusType } from "../../lib/types";
 import { STATUS_COLORS } from "../../lib/constants";
-import { formatLocalYYYYMMDD } from "../../lib/date";
+import { formatAPI } from "../../lib/date";
 import { styles } from "../../styles/ui";
 
 type Props = {
@@ -25,9 +25,9 @@ type Props = {
 };
 
 const NEXT_STATUS: Record<Exclude<StatusType, "ทั้งหมด">, StatusType> = {
-  รอทำ: "กำลังทำ",
-  กำลังทำ: "เสร็จ",
-  เสร็จ: "รอทำ",
+  Pending: "InProgress",
+  InProgress: "Done",
+  Done: "Pending",
 };
 
 export default function TaskCard({
@@ -52,7 +52,7 @@ export default function TaskCard({
   const right = () => (
     <View style={{ alignItems: "flex-end" }}>
       <Text style={styles.amountText}>
-        {`฿ ${Number(task.amount ?? 0).toLocaleString()}`}
+        {`฿ ${Number(task.total_amount ?? 0).toLocaleString()}`}
       </Text>
       <Badge
         style={[styles.badge, { backgroundColor: STATUS_COLORS[task.status] }]}
@@ -62,7 +62,7 @@ export default function TaskCard({
     </View>
   );
 
-  const isEditable = task.status === "รอทำ" || task.status === "กำลังทำ";
+  const isEditable = task.status === "Pending" || task.status === "InProgress";
   const hasProgress = typeof task.progress === "number";
   const progress = useMemo(
     () => (hasProgress ? Math.max(0, Math.min(1, Number(task.progress))) : 0),
@@ -92,9 +92,9 @@ export default function TaskCard({
 
       <Card.Content style={{ gap: 8 }}>
         <Text style={{ color: "#6B7280" }}>
-          {`เริ่ม: ${formatLocalYYYYMMDD(
+          {`เริ่ม: ${formatAPI(
             task.startDate
-          )} • กำหนดส่ง: ${formatLocalYYYYMMDD(task.endDate)}`}
+          )} • กำหนดส่ง: ${formatAPI(task.endDate)}`}
         </Text>
 
         {task.jobType ? (

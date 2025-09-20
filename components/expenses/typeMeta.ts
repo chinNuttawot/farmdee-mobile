@@ -4,7 +4,7 @@ export type ExpenseType = "labor" | "material" | "fuel" | "other";
 export type Expense = {
     id: string;
     title: string;
-    amount: number;
+    total_amount: number;
     type: ExpenseType;
     jobNote?: string;
     qtyNote?: string;

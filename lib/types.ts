@@ -1,11 +1,11 @@
 // lib/types.ts
 export type JobType = "งานไร่" | "งานซ่อม";
-export type StatusType = "ทั้งหมด" | "รอทำ" | "กำลังทำ" | "เสร็จ";
+export type StatusType = "ทั้งหมด" | "Pending" | "InProgress" | "Done";
 
 export type Task = {
     id: string;
     title: string;
-    amount: number;
+    total_amount: number;
     status: StatusType;
     color: string;
     startDate: Date;

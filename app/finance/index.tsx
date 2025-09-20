@@ -30,7 +30,7 @@ type Row = {
   id: string;
   kind: Kind;
   label: string;
-  amount: number;
+  total_amount: number;
   taskId?: string;
   createdAt: string;
 };
@@ -48,7 +48,7 @@ export default function Finance() {
   // ---- form ----
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
-  const [amount, setAmount] = useState("0");
+  const [total_amount, setAmount] = useState("0");
   const [kind, setKind] = useState<Kind>("labor");
   const [taskId, setTaskId] = useState("");
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
@@ -75,7 +75,7 @@ export default function Finance() {
   const sum = (k?: Kind) =>
     rows
       .filter((r) => (k ? r.kind === k : true))
-      .reduce((s, r) => s + (r.amount || 0), 0);
+      .reduce((s, r) => s + (r.total_amount || 0), 0);
 
   const fmt = (n: number) => money(n);
   const toNum = (s: string) => Number((s || "0").replace(/[^\d.]/g, "")) || 0;
@@ -130,7 +130,7 @@ export default function Finance() {
           )}
           right={() => (
             <Text style={{ fontWeight: "800", marginRight: 12 }}>
-              {fmt(item.amount)}
+              {fmt(item.total_amount)}
             </Text>
           )}
         />
@@ -146,7 +146,7 @@ export default function Finance() {
       setSnack({ visible: true, msg: "กรุณากรอกรายละเอียด" });
       return;
     }
-    const amt = toNum(amount);
+    const amt = toNum(total_amount);
     if (amt <= 0) {
       setSnack({ visible: true, msg: "จำนวนเงินต้องมากกว่า 0" });
       return;
@@ -155,7 +155,7 @@ export default function Finance() {
     const row: Row = {
       id: String(Date.now()),
       label: label.trim(),
-      amount: amt,
+      total_amount: amt,
       kind,
       taskId: taskId.trim() || undefined,
       createdAt: new Date().toISOString().slice(0, 10),
@@ -291,7 +291,7 @@ export default function Finance() {
             <TextInput
               mode="outlined"
               label="จำนวนเงิน"
-              value={amount}
+              value={total_amount}
               onChangeText={(t) => setAmount(t.replace(/[^\d.]/g, ""))}
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash" />}

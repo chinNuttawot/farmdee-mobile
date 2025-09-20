@@ -33,7 +33,7 @@ export default function ExpenseItem({
         )}
         right={() => (
           <View style={{ alignItems: "flex-end", marginRight: 6 }}>
-            <Text style={{ fontWeight: "800" }}>฿{fmt(item.amount)}</Text>
+            <Text style={{ fontWeight: "800" }}>฿{fmt(item.total_amount)}</Text>
             <TypeChip t={item.type} />
           </View>
         )}

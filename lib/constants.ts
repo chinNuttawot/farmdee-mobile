@@ -3,9 +3,9 @@ import { StatusType } from "./types";
 
 export const STATUS_COLORS: Record<StatusType, string> = {
     ทั้งหมด: "#9C27B0",
-    รอทำ: "#FF8F00",
-    กำลังทำ: "#2962FF",
-    เสร็จ: "#2E7D32",
+    Pending: "#FF8F00",
+    InProgress: "#2962FF",
+    Done: "#2E7D32",
 };
 
 export const MONTH_NAMES = [

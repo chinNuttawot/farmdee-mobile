@@ -5,7 +5,7 @@ import { Card, Text } from "react-native-paper";
 import Header from "../../components/Header";
 
 import { STATUS_COLORS } from "../../lib/constants";
-import { inRange, formatLocalYYYYMMDD, startOfDay } from "../../lib/date";
+import { inRange, formatAPI, startOfDay } from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
@@ -23,9 +23,9 @@ import MultiCreateTasksModal from "../../components/Tasks/MultiCreateTasksModal"
 
 // ------ ชนิดขยาย ------
 export type TaskWithMeta = Task & {
-  area?: number;
+  area?: string;
   trucks?: number;
-  paid?: number;
+  paid_amount?: number;
 };
 
 // ------ seed data ------
@@ -40,7 +40,7 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
     {
       id: `d9-todo`,
       title: "เตรียมอุปกรณ์รดน้ำ (โซน A)",
-      amount: 800,
+      total_amount: 800,
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
@@ -49,12 +49,12 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       progress: 0.1,
       area: 1.5,
       trucks: 0,
-      paid: 0,
+      paid_amount: 0,
     },
     {
       id: `d9-doing`,
       title: "พรวนดินแปลงผักไทย",
-      amount: 1800,
+      total_amount: 1800,
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
@@ -63,14 +63,14 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       progress: 0.5,
       area: 2,
       trucks: 1,
-      paid: 500,
+      paid_amount: 500,
     },
     {
       id: `d9-done`,
       title: "เก็บผักส่งตลาดยามเช้า",
-      amount: 2200,
-      status: "เสร็จ",
-      color: STATUS_COLORS["เสร็จ"],
+      total_amount: 2200,
+      status: "Done",
+      color: STATUS_COLORS["Done"],
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
@@ -78,12 +78,12 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       tags: ["ขนส่ง", "แช่เย็น"],
       progress: 1,
       trucks: 1,
-      paid: 2200,
+      paid_amount: 2200,
     },
     {
       id: `d10-todo`,
       title: "ตรวจสภาพโรงเรือน/ระบายอากาศ",
-      amount: 600,
+      total_amount: 600,
       startDate: d10,
       endDate: d10,
       jobType: "งานซ่อม",
@@ -94,7 +94,7 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
     {
       id: `d10-doing`,
       title: "ให้ปุ๋ยผักสลัดออร์แกนิก",
-      amount: 1500,
+      total_amount: 1500,
       startDate: d10,
       endDate: d10,
       jobType: "งานไร่",
@@ -106,16 +106,16 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
     {
       id: `d10-done`,
       title: "ซ่อมแซมระบบน้ำหยดโซน B",
-      amount: 900,
-      status: "เสร็จ",
-      color: STATUS_COLORS["เสร็จ"],
+      total_amount: 900,
+      status: "Done",
+      color: STATUS_COLORS["Done"],
       startDate: d10,
       endDate: d10,
       jobType: "งานซ่อม",
       note: "เปลี่ยนหัวน้ำหยด 5 จุด",
       tags: ["ระบบน้ำ"],
       progress: 1,
-      paid: 900,
+      paid_amount: 900,
     },
   ];
 }
@@ -124,7 +124,7 @@ const SEED_TASKS: TaskWithMeta[] = [
   {
     id: "t1",
     title: "เตรียมดินแปลงผักสลัด",
-    amount: 2500,
+    total_amount: 2500,
     startDate: new Date(2025, 7, 19),
     endDate: new Date(2025, 7, 21),
     jobType: "งานไร่",
@@ -133,12 +133,12 @@ const SEED_TASKS: TaskWithMeta[] = [
     progress: 0.6,
     area: 3,
     trucks: 1,
-    paid: 1200,
+    paid_amount: 1200,
   },
   {
     id: "t2",
     title: "เปลี่ยนเมล็ดผักกาดหอม",
-    amount: 1500,
+    total_amount: 1500,
     startDate: new Date(2025, 7, 18),
     endDate: new Date(2025, 7, 21),
     jobType: "งานไร่",
@@ -150,8 +150,8 @@ const SEED_TASKS: TaskWithMeta[] = [
   {
     id: "t3",
     title: "ส่งผักรวมสลัดให้ลูกค้า A",
-    amount: 3500,
-    status: "เสร็จ",
+    total_amount: 3500,
+    status: "Done",
     color: "#2E7D32",
     startDate: new Date(2025, 7, 18),
     endDate: new Date(2025, 7, 18),
@@ -160,14 +160,14 @@ const SEED_TASKS: TaskWithMeta[] = [
     tags: ["ขนส่ง", "แช่เย็น"],
     progress: 1,
     trucks: 1,
-    paid: 3500,
+    paid_amount: 3500,
   },
   ...buildDayTasksForCurrentMonth(),
 ];
 
 // ---------- การ์ดเรียบแบบภาพแรก ----------
 function SimpleTaskCard({ task }: { task: TaskWithMeta }) {
-  const done = task.status === "เสร็จ";
+  const done = task.status === "Done";
   return (
     <Card style={ss.card}>
       <Card.Content>
@@ -182,8 +182,8 @@ function SimpleTaskCard({ task }: { task: TaskWithMeta }) {
         )}
 
         <Text style={ss.meta}>
-          เริ่ม: {formatLocalYYYYMMDD(task.startDate)} • กำหนดส่ง:{" "}
-          {formatLocalYYYYMMDD(task.endDate)}
+          เริ่ม: {formatAPI(task.startDate)} • กำหนดส่ง:{" "}
+          {formatAPI(task.endDate)}
         </Text>
 
         {!!task.note && <Text style={ss.note}>{task.note}</Text>}
@@ -243,7 +243,7 @@ export default function Dashboard() {
 
         <DayResultText
           count={filtered.length}
-          dateText={formatLocalYYYYMMDD(selectedDate)}
+          dateText={formatAPI(selectedDate)}
         />
 
         <View style={{ gap: 12 }}>

@@ -22,7 +22,7 @@ type SalarySlip = {
   subtotal: number;
   vat: number;
   total: number;
-  paid: boolean;
+  paid_amount: boolean;
 };
 
 const MOCK: SalarySlip[] = [
@@ -34,7 +34,7 @@ const MOCK: SalarySlip[] = [
     subtotal: 1000,
     vat: 70,
     total: 1070,
-    paid: true,
+    paid_amount: true,
   },
   {
     id: "2",
@@ -44,7 +44,7 @@ const MOCK: SalarySlip[] = [
     subtotal: 1000,
     vat: 70,
     total: 1070,
-    paid: false,
+    paid_amount: false,
   },
 ];
 
@@ -91,11 +91,11 @@ function SalaryCard({
             <Chip
               compact
               mode="flat"
-              style={[s.statusChip, item.paid ? s.paidBg : s.unpaidBg]}
-              textStyle={[s.statusText, item.paid ? s.paidText : s.unpaidText]}
-              icon={item.paid ? "check" : "clock-outline"}
+              style={[s.statusChip, item.paid_amount ? s.paidBg : s.unpaidBg]}
+              textStyle={[s.statusText, item.paid_amount ? s.paidText : s.unpaidText]}
+              icon={item.paid_amount ? "check" : "clock-outline"}
             >
-              {item.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}
+              {item.paid_amount ? "ชำระแล้ว" : "ยังไม่ชำระ"}
             </Chip>
           </View>
         </View>
@@ -151,15 +151,15 @@ export default function Tasks() {
             .right { text-align: right; }
             .total { font-size: 16px; font-weight: 800; }
             .badge { display:inline-block; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700; }
-            .paid { background:#DFF2E2; color:#2E7D32; }
+            .paid_amount { background:#DFF2E2; color:#2E7D32; }
             .unpaid { background:#FFF0D9; color:#C77700; }
           </style>
         </head>
         <body>
           <h1>เงินเดือน ${item.docNo}</h1>
           <div class="muted">${item.employee} · ${item.date}
-            &nbsp; <span class="badge ${item.paid ? "paid" : "unpaid"}">${
-        item.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"
+            &nbsp; <span class="badge ${item.paid_amount ? "paid_amount" : "unpaid"}">${
+        item.paid_amount ? "ชำระแล้ว" : "ยังไม่ชำระ"
       }</span>
           </div>
 

@@ -36,7 +36,7 @@ export default function AddExpenseDialog({
   const [jobNote, setJobNote] = useState("");
   const [qtyNote, setQtyNote] = useState("");
   const [workDate, setWorkDate] = useState("");
-  const [amount, setAmount] = useState("");
+  const [total_amount, setAmount] = useState("");
 
   const isEdit = !!initial;
 
@@ -50,7 +50,7 @@ export default function AddExpenseDialog({
       setQtyNote(initial.qtyNote ?? "");
       setWorkDate(initial.workDate ?? "");
       setAmount(
-        typeof initial.amount === "number" ? String(initial.amount) : ""
+        typeof initial.total_amount === "number" ? String(initial.total_amount) : ""
       );
     } else {
       setTitle("");
@@ -68,19 +68,19 @@ export default function AddExpenseDialog({
   };
 
   const canSubmit = useMemo(
-    () => (title.trim() || jobNote.trim()) && toNum(amount) > 0,
-    [title, jobNote, amount]
+    () => (title.trim() || jobNote.trim()) && toNum(total_amount) > 0,
+    [title, jobNote, total_amount]
   );
 
   const submit = () => {
-    const amt = toNum(amount);
+    const amt = toNum(total_amount);
     if (!canSubmit) return;
 
     if (isEdit && initial) {
       const updated: Expense = {
         id: initial.id,
         title: title.trim() || typeMeta[type].label,
-        amount: amt,
+        total_amount: amt,
         type,
         jobNote: jobNote.trim() || undefined,
         qtyNote: qtyNote.trim() || undefined,
@@ -90,7 +90,7 @@ export default function AddExpenseDialog({
     } else {
       const payload: Omit<Expense, "id"> = {
         title: title.trim() || typeMeta[type].label,
-        amount: amt,
+        total_amount: amt,
         type,
         jobNote: jobNote.trim() || undefined,
         qtyNote: qtyNote.trim() || undefined,
@@ -197,7 +197,7 @@ export default function AddExpenseDialog({
             <Text style={styles.fieldLabelV2}>จำนวนเงิน</Text>
             <TextInput
               mode="outlined"
-              value={amount}
+              value={total_amount}
               onChangeText={(t) => setAmount(t.replace(/[^\d.]/g, ""))}
               keyboardType="numeric"
               placeholder="0"

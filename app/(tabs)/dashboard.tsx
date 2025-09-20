@@ -1,12 +1,16 @@
 // app/(tabs)/dashboard.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { FAB } from "react-native-paper";
 import Header from "../../components/Header";
 
 import { styles } from "../../styles/ui";
 import { STATUS_COLORS } from "../../lib/constants";
-import { inRange, formatLocalYYYYMMDD, startOfDay } from "../../lib/date";
+import {
+  inRange,
+  formatAPI,
+  startOfDay,
+} from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
@@ -18,187 +22,41 @@ import StatusFilterChips from "../../components/Tasks/StatusFilterChips";
 import TaskSearchBar from "../../components/Tasks/TaskSearchBar";
 import TaskEmptyCard from "../../components/Tasks/TaskEmptyCard";
 import DayResultText from "../../components/Tasks/DayResultText";
+import { tasksService } from "@/service/index";
 
 // ✅ ขยายชนิด task ฝั่งแอปให้เก็บเมตาได้
 export type TaskWithMeta = Task & {
   area?: number; // จำนวนไร่
   trucks?: number; // จำนวนรถ
-  paid?: number; // ค่าแรงแล้ว
+  paid_amount?: number; // ค่าแรงแล้ว
 };
-
-// --- seed data ---
-function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m0 = now.getMonth();
-  const d9 = new Date(y, m0, 9);
-  const d10 = new Date(y, m0, 10);
-
-  return [
-    {
-      id: `d9-todo`,
-      title: "เตรียมอุปกรณ์รดน้ำ (โซน A)",
-      amount: 800,
-      status: "รอทำ",
-      color: STATUS_COLORS["รอทำ"],
-      startDate: d9,
-      endDate: d9,
-      jobType: "งานไร่",
-      note: "เช็กหัวฉีด/สายยางก่อนเริ่มงาน",
-      tags: ["อุปกรณ์", "เช้า"],
-      progress: 0.1,
-      // ตัวอย่าง meta:
-      area: 1.5,
-      trucks: 0,
-      paid: 0,
-    },
-    {
-      id: `d9-doing`,
-      title: "พรวนดินแปลงผักไทย",
-      amount: 1800,
-      status: "กำลังทำ",
-      color: STATUS_COLORS["กำลังทำ"],
-      startDate: d9,
-      endDate: d9,
-      jobType: "งานไร่",
-      note: "ทำต่อเนื่อง 2 ชม.",
-      tags: ["แปลง C1"],
-      progress: 0.5,
-      area: 2,
-      trucks: 1,
-      paid: 500,
-    },
-    {
-      id: `d9-done`,
-      title: "เก็บผักส่งตลาดยามเช้า",
-      amount: 2200,
-      status: "เสร็จ",
-      color: STATUS_COLORS["เสร็จ"],
-      startDate: d9,
-      endDate: d9,
-      jobType: "งานไร่",
-      note: "ส่งตรงเวลา",
-      tags: ["ขนส่ง", "แช่เย็น"],
-      progress: 1,
-      trucks: 1,
-      paid: 2200,
-    },
-    {
-      id: `d10-todo`,
-      title: "ตรวจสภาพโรงเรือน/ระบายอากาศ",
-      amount: 600,
-      status: "รอทำ",
-      color: STATUS_COLORS["รอทำ"],
-      startDate: d10,
-      endDate: d10,
-      jobType: "งานซ่อม",
-      note: "โฟกัสพัดลมตัวที่ 2",
-      tags: ["โรงเรือน"],
-      progress: 0.05,
-    },
-    {
-      id: `d10-doing`,
-      title: "ให้ปุ๋ยผักสลัดออร์แกนิก",
-      amount: 1500,
-      status: "กำลังทำ",
-      color: STATUS_COLORS["กำลังทำ"],
-      startDate: d10,
-      endDate: d10,
-      jobType: "งานไร่",
-      note: "อัตรา 1:100 ตามสูตร",
-      tags: ["ปุ๋ยน้ำ", "ปลอดสาร"],
-      progress: 0.35,
-      area: 1,
-    },
-    {
-      id: `d10-done`,
-      title: "ซ่อมแซมระบบน้ำหยดโซน B",
-      amount: 900,
-      status: "เสร็จ",
-      color: STATUS_COLORS["เสร็จ"],
-      startDate: d10,
-      endDate: d10,
-      jobType: "งานซ่อม",
-      note: "เปลี่ยนหัวน้ำหยด 5 จุด",
-      tags: ["ระบบน้ำ"],
-      progress: 1,
-      paid: 900,
-    },
-  ];
-}
-
-const SEED_TASKS: TaskWithMeta[] = [
-  {
-    id: "t1",
-    title: "เตรียมดินแปลงผักสลัด",
-    amount: 2500,
-    status: "กำลังทำ",
-    color: "#2962FF",
-    startDate: new Date(2025, 7, 19),
-    endDate: new Date(2025, 7, 21),
-    jobType: "งานไร่",
-    note: "ไม่ล่าช้า 6 ชม.",
-    tags: ["ด่วน", "ปลอดสาร"],
-    progress: 0.6,
-    area: 3,
-    trucks: 1,
-    paid: 1200,
-  },
-  {
-    id: "t2",
-    title: "เปลี่ยนเมล็ดผักกาดหอม",
-    amount: 1500,
-    status: "รอทำ",
-    color: "#FF8F00",
-    startDate: new Date(2025, 7, 18),
-    endDate: new Date(2025, 7, 21),
-    jobType: "งานไร่",
-    note: "ต้องเช็คสต็อกก่อน",
-    tags: ["เมล็ด", "แปลง B3"],
-    progress: 0.2,
-    area: 1,
-  },
-  {
-    id: "t3",
-    title: "ส่งผักรวมสลัดให้ลูกค้า A",
-    amount: 3500,
-    status: "เสร็จ",
-    color: "#2E7D32",
-    startDate: new Date(2025, 7, 18),
-    endDate: new Date(2025, 7, 18),
-    jobType: "งานไร่",
-    note: "ส่งตรงเวลา",
-    tags: ["ขนส่ง", "แช่เย็น"],
-    progress: 1,
-    trucks: 1,
-    paid: 3500,
-  },
-  ...buildDayTasksForCurrentMonth(),
-];
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusType>("ทั้งหมด");
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
-  const [tasks, setTasks] = useState<TaskWithMeta[]>(SEED_TASKS);
+  const [tasks, setTasks] = useState<TaskWithMeta[]>([]);
 
   // สำหรับ create/edit
   const [openCreate, setOpenCreate] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithMeta | null>(null);
 
+  useEffect(() => {
+    getData();
+  }, [selectedDate]);
+
+  const getData = async () => {
+    try {
+      const from = formatAPI(selectedDate);
+      const { data } = await tasksService({ from });
+      setTasks(data.items);
+    } catch (err) {
+      alert("เกิดข้อมพิดพลาด");
+    }
+  };
   const filtered = useMemo(() => {
-    const text = search.trim().toLowerCase();
-    return tasks.filter((t) => {
-      const okStatus = status === "ทั้งหมด" ? true : t.status === status;
-      const okSearch =
-        !text ||
-        t.title.toLowerCase().includes(text) ||
-        t.tags?.some((x) => x.toLowerCase().includes(text)) ||
-        (t.jobType ?? "").toLowerCase().includes(text);
-      const okDate = inRange(selectedDate, t.startDate, t.endDate);
-      return okStatus && okSearch && okDate;
-    });
-  }, [search, status, selectedDate, tasks]);
+    return tasks;
+  }, [tasks]);
 
   const openCreateMode = () => {
     setEditingTask(null);
@@ -206,6 +64,8 @@ export default function Dashboard() {
   };
 
   const openEditMode = (tk: TaskWithMeta) => {
+    console.log("tk ====>", tk);
+    
     setEditingTask(tk);
     setOpenCreate(true);
   };
@@ -225,7 +85,7 @@ export default function Dashboard() {
       >
         <MiniCalendar
           value={selectedDate}
-          onChange={(d) => setSelectedDate(startOfDay(d))}
+          onChange={(d) => setSelectedDate(d)}
         />
 
         <StatusFilterChips value={status} onChange={setStatus} />
@@ -239,7 +99,7 @@ export default function Dashboard() {
 
         <DayResultText
           count={filtered.length}
-          dateText={formatLocalYYYYMMDD(selectedDate)}
+          dateText={formatAPI(selectedDate)}
         />
 
         <View style={{ gap: 12 }}>

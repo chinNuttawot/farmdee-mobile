@@ -30,7 +30,7 @@ type Invoice = {
   total: number;
   pdfPath: string;
   createdAt: string; // YYYY-MM-DD
-  status: "unpaid" | "paid";
+  status: "unpaid" | "paid_amount";
   points: number;
 };
 
@@ -44,15 +44,15 @@ export default function Invoices() {
   // ------- form -------
   const [open, setOpen] = useState(false);
   const [clientName, setClientName] = useState("ลูกค้าทดสอบ");
-  const [amount, setAmount] = useState("1000"); // string for input
+  const [total_amount, setAmount] = useState("1000"); // string for input
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
     visible: false,
     msg: "",
   });
 
   const amtNum = useMemo(
-    () => Number((amount || "0").replace(/[^\d.]/g, "")) || 0,
-    [amount]
+    () => Number((total_amount || "0").replace(/[^\d.]/g, "")) || 0,
+    [total_amount]
   );
   const tax = Math.round(amtNum * 0.07);
   const total = amtNum + tax;
@@ -80,7 +80,7 @@ export default function Invoices() {
     const pdfPath = await makeInvoicePDF({
       invoiceNo,
       clientName: clientName.trim(),
-      items: [{ label: "ค่าบริการ", amount: amtNum }],
+      items: [{ label: "ค่าบริการ", total_amount: amtNum }],
       subtotal: amtNum,
       tax,
       total,
@@ -111,7 +111,7 @@ export default function Invoices() {
     setRows((prev) =>
       prev.map((r) =>
         r.id === id
-          ? { ...r, status: r.status === "paid" ? "unpaid" : "paid" }
+          ? { ...r, status: r.status === "paid_amount" ? "unpaid" : "paid_amount" }
           : r
       )
     );
@@ -160,17 +160,17 @@ export default function Invoices() {
 
         <View style={[styles.row, { marginTop: 6 }]}>
           <Chip
-            icon={item.status === "paid" ? "check-circle" : "clock-outline"}
+            icon={item.status === "paid_amount" ? "check-circle" : "clock-outline"}
             style={{
               backgroundColor:
-                item.status === "paid" ? "#2E7D3215" : "#E6510015",
+                item.status === "paid_amount" ? "#2E7D3215" : "#E6510015",
             }}
             textStyle={{
-              color: item.status === "paid" ? "#2E7D32" : "#E65100",
+              color: item.status === "paid_amount" ? "#2E7D32" : "#E65100",
               fontWeight: "700",
             }}
           >
-            {item.status === "paid" ? "ชำระแล้ว" : "ยังไม่ชำระ"}
+            {item.status === "paid_amount" ? "ชำระแล้ว" : "ยังไม่ชำระ"}
           </Chip>
 
           <View style={{ flexDirection: "row" }}>
@@ -179,7 +179,7 @@ export default function Invoices() {
               onPress={() => openPdf(item.pdfPath)}
             />
             <IconButton
-              icon={item.status === "paid" ? "refresh" : "check"}
+              icon={item.status === "paid_amount" ? "refresh" : "check"}
               onPress={() => togglePaid(item.id)}
             />
           </View>
@@ -235,7 +235,7 @@ export default function Invoices() {
             <TextInput
               mode="outlined"
               label="จำนวนเงิน (ก่อน VAT)"
-              value={amount}
+              value={total_amount}
               onChangeText={(t) => setAmount(t.replace(/[^\d.]/g, ""))}
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash" />}

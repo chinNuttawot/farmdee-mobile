@@ -9,18 +9,18 @@ export const Profile = async (): Promise<any> => {
   try {
     const token = await StorageUtility.get(authToken);
 
-    const { data } = await api.get<any>("/me", {
+    const response = await api.get<any>("/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    const profile = data?.user || {};
+    const { data: dataLogin } = response;
+    const profile = dataLogin.data?.user || {};
 
     if (profile) {
       // เก็บลง Storage อัตโนมัติ
       await StorageUtility.set(PROFILE_KEY, JSON.stringify(profile));
     }
 
-    return profile;
+    return dataLogin.data;
   } catch (error: any) {
     if (error.response) {
       alert(error.response.data.message);

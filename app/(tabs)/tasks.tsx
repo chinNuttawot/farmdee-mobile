@@ -35,7 +35,7 @@ export default function Tasks() {
         {
           id: "1",
           title: "ปุ๋ย 15-15-15",
-          amount: 1880,
+          total_amount: 1880,
           type: "material",
           jobNote: "งาน: ใส่ปุ๋ย แปลง A",
           qtyNote: "จำนวน: 5 กระสอบ",
@@ -44,7 +44,7 @@ export default function Tasks() {
         {
           id: "2",
           title: "ค่าแรงคันเดียว",
-          amount: 1200,
+          total_amount: 1200,
           type: "labor",
           jobNote: "งาน: ตัดหญ้า",
           qtyNote: "ชั่วโมง: 8 ชม. × ฿150",
@@ -53,7 +53,7 @@ export default function Tasks() {
         {
           id: "3",
           title: "ค่าน้ำมันขนส่งผลผลิต",
-          amount: 900,
+          total_amount: 900,
           type: "fuel",
           jobNote: "งาน: ขนส่งผลผลิต",
           qtyNote: "จำนวน: 2 ถัง",
@@ -86,11 +86,11 @@ export default function Tasks() {
   }, [rows, filter, q]);
 
   const totalAll = useMemo(
-    () => rows.reduce((s, r) => s + r.amount, 0),
+    () => rows.reduce((s, r) => s + r.total_amount, 0),
     [rows]
   );
   const totalBy = (t: ExpenseType) =>
-    rows.filter((r) => r.type === t).reduce((s, r) => s + r.amount, 0);
+    rows.filter((r) => r.type === t).reduce((s, r) => s + r.total_amount, 0);
 
   // ---- helpers ----
   const fmt = (n: number) =>

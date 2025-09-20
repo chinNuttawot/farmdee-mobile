@@ -16,7 +16,7 @@ export async function makeInvoicePDF({ invoiceNo, clientName, items, subtotal, t
     <table>
       <thead><tr><th>รายการ</th><th class="right">ราคา</th></tr></thead>
       <tbody>
-        ${items.map((it: any) => `<tr><td>${it.label}</td><td class="right">${money(it.amount)}</td></tr>`).join('')}
+        ${items.map((it: any) => `<tr><td>${it.label}</td><td class="right">${money(it.total_amount)}</td></tr>`).join('')}
       </tbody>
       <tfoot>
         <tr><td class="right">Subtotal</td><td class="right">${money(subtotal)}</td></tr>

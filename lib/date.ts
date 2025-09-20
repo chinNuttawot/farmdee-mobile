@@ -1,3 +1,5 @@
+import moment from "moment"
+
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 export function startOfDay(d: Date) {
     const x = new Date(d);
@@ -41,4 +43,8 @@ export function monthMatrix(year: number, month0: number) {
         cells.push({ date: next, isCurrentMonth: next.getMonth() === month0 });
     }
     return cells;
+}
+
+export const formatAPI = (data) => {
+    return moment(data).format("YYYY-MM-DD")
 }

@@ -31,6 +31,11 @@ const TH_MONTHS = [
 ];
 const TH_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
+// helper: ทำให้เป็น "เที่ยงวัน local" เพื่อกันวันเพี้ยนตอนแปลงเป็น UTC
+function toLocalNoon(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
+}
+
 // เพิ่มตัวเลือกใช้ปี พ.ศ. (ค่าเริ่มต้น = true)
 export default function MiniCalendar({
   value,
@@ -51,7 +56,9 @@ export default function MiniCalendar({
     () => monthMatrix(viewYear, viewMonth0),
     [viewYear, viewMonth0]
   );
-  const today = startOfDay(new Date());
+
+  // today แบบ safe (เที่ยงวัน) เพื่อให้เทียบวันไม่โดน timezone แทรกแซง
+  const today = toLocalNoon(new Date());
 
   const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
 
@@ -67,12 +74,19 @@ export default function MiniCalendar({
   };
 
   const selectDate = (d: Date) => {
-    const normalized = startOfDay(d);
-    if (d.getMonth() !== viewMonth0 || d.getFullYear() !== viewYear) {
+    // ทำให้เป็นเที่ยงวัน local แล้วค่อยยิงออกไป
+    const normalizedLocalNoon = toLocalNoon(d);
+
+    // sync เดือน/ปีของมุมมองถ้ากดวันที่ข้ามเดือน/ปี
+    if (
+      d.getMonth() !== viewMonth0 ||
+      d.getFullYear() !== viewYear
+    ) {
       setViewMonth0(d.getMonth());
       setViewYear(d.getFullYear());
     }
-    onChange(normalized);
+
+    onChange(normalizedLocalNoon);
   };
 
   return (
@@ -121,8 +135,10 @@ export default function MiniCalendar({
         {/* Grid */}
         <View style={s.grid7}>
           {cells.map(({ date, isCurrentMonth }, idx) => {
-            const isToday = isSameDay(date, today);
-            const isSelected = isSameDay(date, value);
+            // เทียบวันที่แบบไม่โดน timezone: ใช้เที่ยงวันทั้งคู่
+            const cellNoon = toLocalNoon(date);
+            const isToday = isSameDay(cellNoon, today);
+            const isSelected = isSameDay(cellNoon, toLocalNoon(value));
             return (
               <TouchableOpacity
                 key={idx}

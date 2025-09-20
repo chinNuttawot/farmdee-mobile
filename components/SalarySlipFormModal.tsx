@@ -24,7 +24,7 @@ export type SalarySlipInput = {
   days: number;
   pieces: number;
   details: string;
-  amount: number; // รวมก่อนหัก
+  total_amount: number; // รวมก่อนหัก
   deduct: number; // หักเบิก
   remain: number; // คงเหลือ
 };
@@ -72,7 +72,7 @@ export default function SalarySlipFormModal({
 2025-09-29
 เก็บอีกชุด 7 ไร่`
   );
-  const [amount, setAmount] = useState<number>(0);
+  const [total_amount, setAmount] = useState<number>(0);
   const [deduct, setDeduct] = useState<string>("2000");
   const [remain, setRemain] = useState<number>(0);
 
@@ -93,7 +93,7 @@ export default function SalarySlipFormModal({
       days: Number(days) || 0,
       pieces: Number(pieces) || 0,
       details,
-      amount,
+      total_amount,
       deduct: Number(deduct) || 0,
       remain,
     });
@@ -208,7 +208,7 @@ export default function SalarySlipFormModal({
                 <Text style={sx.label}>จำนวนเงิน</Text>
                 <TextInput
                   mode="outlined"
-                  value={String(amount)}
+                  value={String(total_amount)}
                   editable={false}
                   right={<TextInput.Affix text="฿" />}
                   style={[sx.input, sx.inputPill]}

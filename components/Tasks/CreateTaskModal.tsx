@@ -18,7 +18,7 @@ import {
 } from "react-native-paper";
 import { styles } from "../../styles/ui";
 import { Task, JobType, AssigneeConfig } from "../../lib/types";
-import { formatLocalYYYYMMDD } from "../../lib/date";
+import { formatAPI } from "../../lib/date";
 import { ASSIGNEE_OPTIONS, STATUS_COLORS } from "../../lib/constants";
 
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
@@ -26,9 +26,9 @@ import AssigneePickerModal from "./AssigneePickerModal";
 
 // ✅ ขยายชนิด task ที่จะส่งออก/รับเข้า modal
 export type TaskWithMeta = Task & {
-  area?: number;
+  area?: string;
   trucks?: number;
-  paid?: number;
+  paid_amount?: number;
 };
 
 type CreateTaskForm = {
@@ -40,7 +40,7 @@ type CreateTaskForm = {
   trucks: string; // เก็บเป็น string สำหรับ input
   assignees: AssigneeConfig[];
   selectedAssignees: string[];
-  paid: string; // เก็บเป็น string สำหรับ input
+  paid_amount: string; // เก็บเป็น string สำหรับ input
   total: string;
   detail: string;
   progress: string; // 0..1
@@ -75,13 +75,13 @@ export default function CreateTaskModal({
   const makeDefaultForm = (date: Date): CreateTaskForm => ({
     title: "",
     jobType: "งานไร่",
-    start: formatLocalYYYYMMDD(date),
-    end: formatLocalYYYYMMDD(date),
+    start: formatAPI(date),
+    end: formatAPI(date),
     area: "",
     trucks: "",
     assignees: makeDefaultAssignees(),
     selectedAssignees: [],
-    paid: "",
+    paid_amount: "",
     total: "",
     detail: "",
     progress: "0",
@@ -97,37 +97,33 @@ export default function CreateTaskModal({
     if (!open) return;
 
     if (initialTask) {
-      const selected = initialTask.tags ?? [];
-      setForm({
+      const data = {
         title: initialTask.title ?? "",
         jobType: (initialTask.jobType as JobType) || "งานไร่",
-        start: formatLocalYYYYMMDD(initialTask.startDate ?? defaultDate),
-        end: formatLocalYYYYMMDD(initialTask.endDate ?? defaultDate),
+        start: formatAPI(initialTask.startDate ?? defaultDate),
+        end: formatAPI(initialTask.endDate ?? defaultDate),
         // ✅ prefill 3 ช่องนี้จาก task เดิม (ถ้ามี)
-        area:
-          initialTask.area != null && Number.isFinite(initialTask.area)
-            ? String(initialTask.area)
-            : "",
-        trucks:
-          initialTask.trucks != null && Number.isFinite(initialTask.trucks)
-            ? String(initialTask.trucks)
-            : "",
-        assignees: makeDefaultAssignees(selected),
-        selectedAssignees: selected,
-        paid:
-          initialTask.paid != null && Number.isFinite(initialTask.paid)
-            ? String(initialTask.paid)
+        area: initialTask.area != null ? String(initialTask.area) : "",
+        trucks: initialTask.trucks != null ? String(initialTask.trucks) : "",
+        assignees: initialTask.assignees || [],
+        selectedAssignees: initialTask.assignees || [],
+        paid_amount:
+          initialTask.paid_amount != null
+            ? String(initialTask.paid_amount)
             : "",
         total:
-          initialTask.amount != null && Number.isFinite(initialTask.amount)
-            ? String(initialTask.amount)
+          initialTask.total_amount != null
+            ? String(initialTask.total_amount)
             : "",
         detail: initialTask.note ?? "",
         progress:
           typeof initialTask.progress === "number"
             ? String(Math.max(0, Math.min(1, Number(initialTask.progress))))
             : "0",
-      });
+      };
+      console.log("initialTask====>", initialTask);
+
+      setForm(data);
     } else {
       setForm(makeDefaultForm(defaultDate));
     }
@@ -157,17 +153,17 @@ export default function CreateTaskModal({
   const save = () => {
     const startD = new Date(form.start);
     const endD = new Date(form.end);
-    const amount = toNumber(form.total);
+    const total_amount = toNumber(form.total);
     const progress = toProgress(form.progress);
 
     const isEdit = !!initialTask;
-    const baseStatus = isEdit ? initialTask!.status : "รอทำ";
-    const baseColor = isEdit ? initialTask!.color : STATUS_COLORS["รอทำ"];
+    const baseStatus = isEdit ? initialTask!.status : "Pending";
+    const baseColor = isEdit ? initialTask!.color : STATUS_COLORS["Pending"];
 
     const newTask: TaskWithMeta = {
       id: isEdit ? initialTask!.id : `user-${Date.now()}`,
       title: form.title || (isEdit ? initialTask!.title : "งานใหม่"),
-      amount,
+      total_amount,
       status: baseStatus,
       color: baseColor,
       startDate: startD,
@@ -179,7 +175,7 @@ export default function CreateTaskModal({
       // ✅ เก็บ meta ลง task ทุกครั้ง (ทั้ง create/edit)
       area: form.area ? Number(form.area) : undefined, // เป็นทศนิยมได้
       trucks: form.trucks ? toInt(form.trucks) : undefined, // เป็นจำนวนเต็ม
-      paid: form.paid ? toNumber(form.paid) : undefined,
+      paid_amount: form.paid_amount ? toNumber(form.paid_amount) : undefined,
     };
 
     onSubmit(newTask);
@@ -282,10 +278,7 @@ export default function CreateTaskModal({
                   <Text
                     numberOfLines={2}
                     style={{
-                      color:
-                        assigneeSummary === "แตะเพื่อเลือก"
-                          ? "#9CA3AF"
-                          : "#111827",
+                      color: "#111827",
                     }}
                   >
                     {assigneeSummary}
@@ -297,9 +290,9 @@ export default function CreateTaskModal({
             <TextInput
               mode="outlined"
               label="ค่าแรงแล้ว"
-              value={form.paid}
+              value={form.paid_amount}
               onChangeText={(v) =>
-                setForm({ ...form, paid: v.replace(/[^0-9.]/g, "") })
+                setForm({ ...form, paid_amount: v.replace(/[^0-9.]/g, "") })
               }
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash" />}
@@ -368,19 +361,19 @@ export default function CreateTaskModal({
           initialDate={
             new Date(
               (pickerFor === "end" ? form.end : form.start) ||
-                formatLocalYYYYMMDD(new Date())
+                formatAPI(new Date())
             )
           }
           onConfirm={(d) => {
             if (pickerFor === "start") {
-              const s = formatLocalYYYYMMDD(d);
+              const s = formatAPI(d);
               setForm((f) => ({
                 ...f,
                 start: s,
                 end: new Date(f.end) < d ? s : f.end,
               }));
             } else if (pickerFor === "end") {
-              const e = formatLocalYYYYMMDD(d);
+              const e = formatAPI(d);
               setForm((f) => ({
                 ...f,
                 end: e,

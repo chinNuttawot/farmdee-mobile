@@ -10,8 +10,8 @@ type SalarySlip = {
   id: string;
   date: string; // YYYY-MM-DD
   title: string;
-  amount: number;
-  paid: boolean;
+  total_amount: number;
+  paid_amount: boolean;
 };
 
 const initRows: SalarySlip[] = [
@@ -19,15 +19,15 @@ const initRows: SalarySlip[] = [
     id: "1",
     date: "2025-08-31",
     title: "ใบแจ้งเงินเดือน #175649379...",
-    amount: 1000,
-    paid: true,
+    total_amount: 1000,
+    paid_amount: true,
   },
   {
     id: "2",
     date: "2025-09-30",
     title: "ใบแจ้งเงินเดือน #175649379...",
-    amount: 1070,
-    paid: false,
+    total_amount: 1070,
+    paid_amount: false,
   },
 ];
 
@@ -46,8 +46,8 @@ export default function SalaryScreen() {
       id,
       date: `${p.month}-30`,
       title: `ใบแจ้งเงินเดือน #${id.slice(-9)}...`,
-      amount: p.remain,
-      paid: false,
+      total_amount: p.remain,
+      paid_amount: false,
     };
     setRows((prev) => [newItem, ...prev]);
     setOpen(false);
@@ -74,15 +74,15 @@ export default function SalaryScreen() {
                   <Text style={styles.date}>{item.date}</Text>
                 </View>
 
-                <Text style={styles.amount}>{money(item.amount)}</Text>
+                <Text style={styles.total_amount}>{money(item.total_amount)}</Text>
               </View>
 
               <View style={{ marginTop: 6 }}>
                 <Text style={styles.subText}>
-                  ยอดก่อนหัก: {money(item.amount)}
+                  ยอดก่อนหัก: {money(item.total_amount)}
                 </Text>
 
-                {item.paid ? (
+                {item.paid_amount ? (
                   <Button
                     mode="outlined"
                     icon="check"
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   title: { fontWeight: "600", fontSize: 15, color: "#333" },
   date: { fontSize: 12, color: "#666" },
-  amount: { fontWeight: "700", fontSize: 15, color: "#000" },
+  total_amount: { fontWeight: "700", fontSize: 15, color: "#000" },
   subText: { fontSize: 13, marginTop: 4 },
   paidBtn: {
     borderColor: "#3E9B4F",

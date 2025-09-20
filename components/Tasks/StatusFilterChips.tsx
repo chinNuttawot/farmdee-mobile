@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function StatusFilterChips({ value, onChange }: Props) {
-  const items: StatusType[] = ["ทั้งหมด", "รอทำ", "กำลังทำ", "เสร็จ"];
+  const items: StatusType[] = ["ทั้งหมด", "Pending", "InProgress", "Done"];
   return (
     <View style={styles.chipRow}>
       {items.map((s) => {
