@@ -6,27 +6,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 import {
   TextInput,
   Button,
   Text,
-  HelperText,
   Surface,
   Checkbox,
   Snackbar,
   useTheme,
 } from "react-native-paper";
 import { useRouter } from "expo-router";
+import { loginService, Profile } from "@/service";
 
 export default function Login() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [user, setUser] = useState("a1");
-  const [password, setPassword] = useState("1");
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -39,9 +38,14 @@ export default function Login() {
   const submit = async () => {
     try {
       setLoading(true);
-      if (user === "a1") {
+      await loginService({
+        username: user,
+        password: password,
+      });
+      const profile = await Profile();
+      if (profile.role === "boss") {
         router.replace("/(tabs)/dashboard");
-      } else if (user === "a2") {
+      } else if (profile.role === "user") {
         router.replace("/(employee)/emp-dashboard");
       }
     } catch (e: any) {
