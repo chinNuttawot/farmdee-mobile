@@ -12,19 +12,38 @@ import {
   useTheme,
   Icon,
 } from "react-native-paper";
-import { MONTH_NAMES } from "../../lib/constants";
 import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
 
+// ========= ภาษาไทย =========
+const TH_MONTHS = [
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
+];
+const TH_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+// เพิ่มตัวเลือกใช้ปี พ.ศ. (ค่าเริ่มต้น = true)
 export default function MiniCalendar({
   value,
   onChange,
+  useBuddhistYear = true,
 }: {
   value: Date;
   onChange: (d: Date) => void;
+  useBuddhistYear?: boolean;
 }) {
   const theme = useTheme();
 
-  const [viewYear, setViewYear] = useState(value.getFullYear());
+  const [viewYear, setViewYear] = useState(value.getFullYear()); // เก็บเป็น ค.ศ.
   const [viewMonth0, setViewMonth0] = useState(value.getMonth());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
 
@@ -33,6 +52,8 @@ export default function MiniCalendar({
     [viewYear, viewMonth0]
   );
   const today = startOfDay(new Date());
+
+  const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
 
   const gotoPrev = () => {
     const d = new Date(viewYear, viewMonth0 - 1, 1);
@@ -65,7 +86,7 @@ export default function MiniCalendar({
           <IconButton icon="chevron-left" size={18} onPress={gotoPrev} />
           <View style={s.calHeaderCenter}>
             <Text style={s.calMonth}>
-              {`${MONTH_NAMES[viewMonth0]} ${viewYear}`}
+              {`${TH_MONTHS[viewMonth0]} ${yDisplay}`}
             </Text>
             <Chip
               compact
@@ -90,7 +111,7 @@ export default function MiniCalendar({
 
         {/* Weekdays */}
         <View style={s.row7}>
-          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+          {TH_WEEKDAYS.map((d) => (
             <Text key={d} style={s.weekCell}>
               {d}
             </Text>
@@ -133,7 +154,7 @@ export default function MiniCalendar({
         </View>
       </Card>
 
-      {/* Year picker modal */}
+      {/* Year picker modal (แสดงปีเป็น พ.ศ. แต่ตั้งค่าเป็น ค.ศ.) */}
       <Portal>
         <Modal
           visible={yearPickerOpen}
@@ -147,22 +168,24 @@ export default function MiniCalendar({
             เลือกปี
           </Text>
           <ScrollView style={{ maxHeight: 300 }}>
-            {Array.from(
-              { length: 41 },
-              (_, i) => new Date().getFullYear() - 20 + i
-            ).map((y) => (
-              <Button
-                key={y}
-                mode="text"
-                style={{ alignSelf: "flex-start" }}
-                onPress={() => {
-                  setViewYear(y);
-                  setYearPickerOpen(false);
-                }}
-              >
-                {y}
-              </Button>
-            ))}
+            {Array.from({ length: 41 }, (_, i) => viewYear - 20 + i).map(
+              (yCE) => {
+                const label = useBuddhistYear ? yCE + 543 : yCE;
+                return (
+                  <Button
+                    key={yCE}
+                    mode="text"
+                    style={{ alignSelf: "flex-start" }}
+                    onPress={() => {
+                      setViewYear(yCE); // เก็บเป็น ค.ศ.
+                      setYearPickerOpen(false);
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              }
+            )}
           </ScrollView>
           <View style={s.yearActions}>
             <Button onPress={() => setYearPickerOpen(false)}>ปิด</Button>
@@ -173,9 +196,9 @@ export default function MiniCalendar({
   );
 }
 
-/** ===== Styles: 7 คอลัมน์เท่ากัน เป๊ะตามรูปที่ 2 ===== */
-const GAP = 6; // ช่องว่างแนวตั้ง/แนวนอน
-const COL_W = "14.2857%"; // 100 / 7
+/** ===== Styles: 7 คอลัมน์เท่ากัน ===== */
+const GAP = 6;
+const COL_W = "14.2857%";
 
 const s = StyleSheet.create({
   calCard: {
@@ -205,7 +228,6 @@ const s = StyleSheet.create({
   yearChip: { borderRadius: 12, paddingHorizontal: 10 },
   yearChipText: { fontWeight: "700" },
 
-  // ===== หัวตาราง 7 ช่อง =====
   row7: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -221,7 +243,6 @@ const s = StyleSheet.create({
     opacity: 0.7,
   },
 
-  // ===== กริด 7 คอลัมน์ =====
   grid7: {
     flexDirection: "row",
     flexWrap: "wrap",

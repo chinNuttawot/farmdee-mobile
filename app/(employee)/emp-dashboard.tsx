@@ -1,32 +1,34 @@
 // app/(tabs)/dashboard.tsx
-import React, { useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
-import { FAB } from "react-native-paper";
+import React, { useMemo, useState, useEffect } from "react";
+import { ScrollView, View, StyleSheet } from "react-native";
+import { Card, Text } from "react-native-paper";
 import Header from "../../components/Header";
 
-import { styles } from "../../styles/ui";
 import { STATUS_COLORS } from "../../lib/constants";
 import { inRange, formatLocalYYYYMMDD, startOfDay } from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
-import TaskCard from "../../components/Tasks/TaskCard";
-import CreateTaskModal from "../../components/Tasks/CreateTaskModal";
+// ⛔ ไม่ใช้ TaskCard เดิม เพราะต้องการหน้าตาแบบภาพแรกเรียบๆ
+// import TaskCard from "../../components/Tasks/TaskCard";
 
-// components ย่อย
-import StatusFilterChips from "../../components/Tasks/StatusFilterChips";
+// components ย่อยเดิม (filter/search/empty/result text)
+// import StatusFilterChips from "../../components/Tasks/StatusFilterChips";
 import TaskSearchBar from "../../components/Tasks/TaskSearchBar";
 import TaskEmptyCard from "../../components/Tasks/TaskEmptyCard";
 import DayResultText from "../../components/Tasks/DayResultText";
 
-// ✅ ขยายชนิด task ฝั่งแอปให้เก็บเมตาได้
+// โมดอลเพิ่มหลายรายการ
+import MultiCreateTasksModal from "../../components/Tasks/MultiCreateTasksModal";
+
+// ------ ชนิดขยาย ------
 export type TaskWithMeta = Task & {
-  area?: number; // จำนวนไร่
-  trucks?: number; // จำนวนรถ
-  paid?: number; // ค่าแรงแล้ว
+  area?: number;
+  trucks?: number;
+  paid?: number;
 };
 
-// --- seed data ---
+// ------ seed data ------
 function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
   const now = new Date();
   const y = now.getFullYear();
@@ -39,15 +41,12 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       id: `d9-todo`,
       title: "เตรียมอุปกรณ์รดน้ำ (โซน A)",
       amount: 800,
-      status: "รอทำ",
-      color: STATUS_COLORS["รอทำ"],
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
       note: "เช็กหัวฉีด/สายยางก่อนเริ่มงาน",
       tags: ["อุปกรณ์", "เช้า"],
       progress: 0.1,
-      // ตัวอย่าง meta:
       area: 1.5,
       trucks: 0,
       paid: 0,
@@ -56,8 +55,6 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       id: `d9-doing`,
       title: "พรวนดินแปลงผักไทย",
       amount: 1800,
-      status: "กำลังทำ",
-      color: STATUS_COLORS["กำลังทำ"],
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
@@ -77,7 +74,7 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       startDate: d9,
       endDate: d9,
       jobType: "งานไร่",
-      note: "ส่งตรงเวลา",
+      note: "ส่งของตอนเช้า",
       tags: ["ขนส่ง", "แช่เย็น"],
       progress: 1,
       trucks: 1,
@@ -87,8 +84,6 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       id: `d10-todo`,
       title: "ตรวจสภาพโรงเรือน/ระบายอากาศ",
       amount: 600,
-      status: "รอทำ",
-      color: STATUS_COLORS["รอทำ"],
       startDate: d10,
       endDate: d10,
       jobType: "งานซ่อม",
@@ -100,8 +95,6 @@ function buildDayTasksForCurrentMonth(): TaskWithMeta[] {
       id: `d10-doing`,
       title: "ให้ปุ๋ยผักสลัดออร์แกนิก",
       amount: 1500,
-      status: "กำลังทำ",
-      color: STATUS_COLORS["กำลังทำ"],
       startDate: d10,
       endDate: d10,
       jobType: "งานไร่",
@@ -132,8 +125,6 @@ const SEED_TASKS: TaskWithMeta[] = [
     id: "t1",
     title: "เตรียมดินแปลงผักสลัด",
     amount: 2500,
-    status: "กำลังทำ",
-    color: "#2962FF",
     startDate: new Date(2025, 7, 19),
     endDate: new Date(2025, 7, 21),
     jobType: "งานไร่",
@@ -148,8 +139,6 @@ const SEED_TASKS: TaskWithMeta[] = [
     id: "t2",
     title: "เปลี่ยนเมล็ดผักกาดหอม",
     amount: 1500,
-    status: "รอทำ",
-    color: "#FF8F00",
     startDate: new Date(2025, 7, 18),
     endDate: new Date(2025, 7, 21),
     jobType: "งานไร่",
@@ -176,15 +165,45 @@ const SEED_TASKS: TaskWithMeta[] = [
   ...buildDayTasksForCurrentMonth(),
 ];
 
+// ---------- การ์ดเรียบแบบภาพแรก ----------
+function SimpleTaskCard({ task }: { task: TaskWithMeta }) {
+  const done = task.status === "เสร็จ";
+  return (
+    <Card style={ss.card}>
+      <Card.Content>
+        <Text variant="titleMedium" style={ss.title}>
+          {task.title}
+        </Text>
+
+        {done && (
+          <View style={ss.donePill}>
+            <Text style={ss.donePillText}>จบงานแล้ว</Text>
+          </View>
+        )}
+
+        <Text style={ss.meta}>
+          เริ่ม: {formatLocalYYYYMMDD(task.startDate)} • กำหนดส่ง:{" "}
+          {formatLocalYYYYMMDD(task.endDate)}
+        </Text>
+
+        {!!task.note && <Text style={ss.note}>{task.note}</Text>}
+      </Card.Content>
+    </Card>
+  );
+}
+
 export default function Dashboard() {
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState<boolean>(true);
   const [status, setStatus] = useState<StatusType>("ทั้งหมด");
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [tasks, setTasks] = useState<TaskWithMeta[]>(SEED_TASKS);
 
-  // สำหรับ create/edit
-  const [openCreate, setOpenCreate] = useState(false);
-  const [editingTask, setEditingTask] = useState<TaskWithMeta | null>(null);
+  // ✅ เปิดโมดอลเพิ่มหลายงานทุกครั้งที่เข้าเพจ
+  const [openMulti, setOpenMulti] = useState(false);
+  useEffect(() => {
+    setOpenMulti(true);
+  }, []);
 
   const filtered = useMemo(() => {
     const text = search.trim().toLowerCase();
@@ -200,21 +219,6 @@ export default function Dashboard() {
     });
   }, [search, status, selectedDate, tasks]);
 
-  const openCreateMode = () => {
-    setEditingTask(null);
-    setOpenCreate(true);
-  };
-
-  const openEditMode = (tk: TaskWithMeta) => {
-    setEditingTask(tk);
-    setOpenCreate(true);
-  };
-
-  const closeModal = () => {
-    setOpenCreate(false);
-    setEditingTask(null);
-  };
-
   return (
     <>
       <Header title="งานของฉัน" backgroundColor="#2E7D32" color="white" />
@@ -228,7 +232,7 @@ export default function Dashboard() {
           onChange={(d) => setSelectedDate(startOfDay(d))}
         />
 
-        <StatusFilterChips value={status} onChange={setStatus} />
+        {/* <StatusFilterChips value={status} onChange={setStatus} /> */}
 
         <TaskSearchBar
           value={search}
@@ -244,59 +248,42 @@ export default function Dashboard() {
 
         <View style={{ gap: 12 }}>
           {filtered.map((t) => (
-            <TaskCard
-              key={t.id}
-              task={t}
-              onPress={(tk) => {
-                console.log("open detail:", tk.id);
-              }}
-              onEdit={(tk) => openEditMode(tk as TaskWithMeta)}
-              onDelete={(tk) =>
-                setTasks((prev) => prev.filter((x) => x.id !== tk.id))
-              }
-              onChangeStatus={(tk, next) =>
-                setTasks((prev) =>
-                  prev.map((x) =>
-                    x.id === tk.id
-                      ? { ...x, status: next, color: STATUS_COLORS[next] }
-                      : x
-                  )
-                )
-              }
-            />
+            <SimpleTaskCard key={t.id} task={t} />
           ))}
           {filtered.length === 0 && <TaskEmptyCard />}
         </View>
       </ScrollView>
 
-      <FAB
-        icon="plus"
-        onPress={openCreateMode}
-        style={styles.fab}
-        size="medium"
-        color="white"
-        customSize={56}
-      />
-
-      {/* ใส่ key เพื่อ remount เมื่อเปลี่ยนโหมด/งาน */}
-      <CreateTaskModal
-        key={editingTask?.id || "new"}
-        open={openCreate}
-        onClose={closeModal}
-        defaultDate={selectedDate}
-        initialTask={editingTask ?? undefined}
-        onSubmit={(task) => {
-          const t = task as TaskWithMeta;
-          if (editingTask) {
-            // edit -> update by id
-            setTasks((prev) => prev.map((x) => (x.id === t.id ? t : x)));
-          } else {
-            // create -> prepend
-            setTasks((prev) => [t, ...prev]);
-          }
-          closeModal();
-        }}
-      />
+      {/* Modal เพิ่มหลายรายการ เปิดอัตโนมัติ */}
+      <MultiCreateTasksModal visible={open} onDismiss={() => {setOpen(false)}} />
     </>
   );
 }
+
+// ---------- styles ของการ์ดแบบภาพแรก ----------
+const ss = StyleSheet.create({
+  card: {
+    borderRadius: 18,
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  title: { fontWeight: "700" },
+  meta: { marginTop: 6, opacity: 0.65 },
+  note: { marginTop: 4 },
+  donePill: {
+    backgroundColor: "#DFF2E2",
+    borderRadius: 999,
+    paddingVertical: 6,
+    marginTop: 8,
+    width: "100%",
+    alignItems: "center",
+  },
+  donePillText: {
+    color: "#2E7D32",
+    fontWeight: "700",
+  },
+});

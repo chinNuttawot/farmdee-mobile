@@ -25,9 +25,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="emp-tasks"
+        name="emp-salary"
         options={{
-          title: "ค่าใช้จ่าย",
+          title: "เงินเดือน",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cash-multiple"
@@ -40,7 +40,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="emp-announcement"
         options={{
-          title: "ประกาศ",
+          title: "ระเบียบ",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="bullhorn"

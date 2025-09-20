@@ -95,9 +95,9 @@ export const styles = StyleSheet.create({
 
     taskCard: { borderRadius: 16, overflow: "hidden" },
     amountText: { fontWeight: "800", fontSize: 16, marginRight: 12, marginTop: 8 },
-    badge: { alignSelf: "flex-end", marginTop: 6 },
+    badge: { alignSelf: "flex-end", marginTop: 6, marginRight: 12 },
     tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "flex-start" },
-    tagChip: { height: 28, borderRadius: 999 },
+    tagChip: { borderRadius: 999 },
 
     emptyCard: { borderRadius: 16, paddingVertical: 8 },
 

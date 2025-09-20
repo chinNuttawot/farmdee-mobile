@@ -36,7 +36,7 @@ export default function Header({ title, onBack, rightAction }: Props) {
 const styles = StyleSheet.create({
   header: {
     elevation: 4,
-    height: 0,
+    height: Platform.OS === "android" ? 40 : 0,
   },
   title: {
     color: "white",
