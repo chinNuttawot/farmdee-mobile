@@ -128,7 +128,7 @@ export default function RootLayout() {
                 />
 
                 <Stack.Screen
-                  name="announcementSceen/index"
+                  name="announcementScreen/index"
                   options={{
                     title: "ประกาศ",
                     headerShown: true,

@@ -52,7 +52,7 @@ export default function Clients() {
       {
         key: "announcement",
         title: "ประกาศ",
-        onPress: () => router.push("/announcementSceen"),
+        onPress: () => router.push("/announcementScreen"),
       },
     ],
     []
