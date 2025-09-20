@@ -4,12 +4,8 @@ import { authToken } from "@/providers/keyStorageUtilliy";
 
 export const loginService = async (data: any) => {
   try {
-    console.log(data);
-    
     const response = await api.post("/auth/login", data);
     const { data: dataLogin } = response;
-    console.log(dataLogin);
-    
     await StorageUtility.set(authToken, dataLogin.data.token);
 
     return dataLogin.data;

@@ -85,7 +85,7 @@ export default function Reports() {
         });
       }
     } catch (err: any) {
-      console.log("exportExcel error:", err);
+      console.error("exportExcel error:", err);
       setSnack({
         visible: true,
         msg: "Export ล้มเหลว: " + (err?.message ?? "unknown"),
@@ -186,7 +186,7 @@ export default function Reports() {
         });
       }
     } catch (err: any) {
-      console.log("exportPDF error:", err);
+      console.error("exportPDF error:", err);
       setSnack({
         visible: true,
         msg: "Export PDF ล้มเหลว: " + (err?.message ?? "unknown"),

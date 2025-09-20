@@ -1,4 +1,5 @@
 // lib/constants.ts
+import { userService } from "@/service";
 import { StatusType } from "./types";
 
 export const STATUS_COLORS: Record<StatusType, string> = {
@@ -12,5 +13,3 @@ export const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 ];
-
-export const ASSIGNEE_OPTIONS = ["นาง A", "นาย B", "นาย C", "นาย D"];

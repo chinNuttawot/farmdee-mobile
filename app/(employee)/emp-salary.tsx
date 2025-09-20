@@ -191,8 +191,6 @@ export default function Tasks() {
       </html>`;
 
       const fileName = safeFileName(item.docNo);
-      console.log("fileName ====>", fileName);
-
       const { uri } = await Prinft.printToFileAsync({
         html,
         fileName: fileName, // 👈 ใช้ชื่อไฟล์ตาม docNo
@@ -212,7 +210,6 @@ export default function Tasks() {
         });
       }
     } catch (err: any) {
-      console.log("exportPDF error:", err);
       setSnack({
         visible: true,
         msg: "Export PDF ล้มเหลว: " + (err?.message ?? "unknown"),

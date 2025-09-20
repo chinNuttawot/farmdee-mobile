@@ -64,8 +64,6 @@ export default function Dashboard() {
   };
 
   const openEditMode = (tk: TaskWithMeta) => {
-    console.log("tk ====>", tk);
-    
     setEditingTask(tk);
     setOpenCreate(true);
   };

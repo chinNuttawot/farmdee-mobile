@@ -23,6 +23,7 @@ import { ASSIGNEE_OPTIONS, STATUS_COLORS } from "../../lib/constants";
 
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
 import AssigneePickerModal from "./AssigneePickerModal";
+import { userService } from "@/service";
 
 // ✅ ขยายชนิด task ที่จะส่งออก/รับเข้า modal
 export type TaskWithMeta = Task & {
@@ -39,7 +40,6 @@ type CreateTaskForm = {
   area: string; // เก็บเป็น string สำหรับ input
   trucks: string; // เก็บเป็น string สำหรับ input
   assignees: AssigneeConfig[];
-  selectedAssignees: string[];
   paid_amount: string; // เก็บเป็น string สำหรับ input
   total: string;
   detail: string;
@@ -59,37 +59,47 @@ export default function CreateTaskModal({
   onSubmit: (task: TaskWithMeta) => void;
   initialTask?: TaskWithMeta;
 }) {
-  const makeDefaultAssignees = (
-    selectedNames: string[] = []
-  ): AssigneeConfig[] =>
-    ASSIGNEE_OPTIONS.map((name) => ({
-      name,
-      isDaily: name === "นาย B",
-      selected: selectedNames.includes(name),
+  const [assignees, setAssignees] = useState([]);
+  const [selecteds, setSelecteds] = useState([]);
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const getData = async () => {
+    const res = await makeDefaultAssignees();
+    setAssignees(res);
+  };
+  const makeDefaultAssignees = async (selectedNames: string[] = []) => {
+    const { data } = await userService({ role: "user" });
+    const res = data.items;
+    return res.map((v) => ({
+      name: v.username,
+      isDaily: v.pay_type === "daily",
+      selected: selectedNames.includes(v.username),
       useDefault: true,
-      pricePerUnit: "",
-      pricePerHour: "",
-      pricePerDay: name === "นาย B" ? "" : "",
+      ratePerRai: v.rate_per_rai,
+      repairRate: v.repair_rate,
+      dailyRate: v.daily_rate,
     }));
+  };
 
-  const makeDefaultForm = (date: Date): CreateTaskForm => ({
-    title: "",
-    jobType: "งานไร่",
-    start: formatAPI(date),
-    end: formatAPI(date),
-    area: "",
-    trucks: "",
-    assignees: makeDefaultAssignees(),
-    selectedAssignees: [],
-    paid_amount: "",
-    total: "",
-    detail: "",
-    progress: "0",
-  });
+  const makeDefaultForm = async (date: Date): CreateTaskForm => {
+    return {
+      title: "",
+      jobType: "งานไร่",
+      start: formatAPI(date),
+      end: formatAPI(date),
+      area: "",
+      trucks: "",
+      assignees: [],
+      paid_amount: "",
+      total: "",
+      detail: "",
+      progress: "0",
+    };
+  };
 
-  const [form, setForm] = useState<CreateTaskForm>(
-    makeDefaultForm(defaultDate)
-  );
+  const [form, setForm] = useState<CreateTaskForm>({});
   const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<"start" | "end" | null>(null);
 
@@ -106,7 +116,6 @@ export default function CreateTaskModal({
         area: initialTask.area != null ? String(initialTask.area) : "",
         trucks: initialTask.trucks != null ? String(initialTask.trucks) : "",
         assignees: initialTask.assignees || [],
-        selectedAssignees: initialTask.assignees || [],
         paid_amount:
           initialTask.paid_amount != null
             ? String(initialTask.paid_amount)
@@ -121,16 +130,18 @@ export default function CreateTaskModal({
             ? String(Math.max(0, Math.min(1, Number(initialTask.progress))))
             : "0",
       };
-      console.log("initialTask====>", initialTask);
-
       setForm(data);
     } else {
-      setForm(makeDefaultForm(defaultDate));
+      getDatamakeDefaultForm();
     }
     setAssigneeModalOpen(false);
     setPickerFor(null);
   }, [open, defaultDate, initialTask]);
 
+  const getDatamakeDefaultForm = async () => {
+    const res = await makeDefaultForm(defaultDate);
+    setForm(res);
+  };
   const resetFormAndClose = () => {
     setForm(makeDefaultForm(defaultDate));
     onClose();
@@ -169,8 +180,8 @@ export default function CreateTaskModal({
       startDate: startD,
       endDate: endD,
       jobType: form.jobType,
-      note: form.detail || undefined,
-      tags: form.selectedAssignees.length ? form.selectedAssignees : undefined,
+      note: form.detail || "",
+      assigneeConfigs: form.assignees.length ? form.assignees : [],
       progress,
       // ✅ เก็บ meta ลง task ทุกครั้ง (ทั้ง create/edit)
       area: form.area ? Number(form.area) : undefined, // เป็นทศนิยมได้
@@ -181,11 +192,6 @@ export default function CreateTaskModal({
     onSubmit(newTask);
     resetFormAndClose();
   };
-
-  const assigneeSummary =
-    form.selectedAssignees.length > 0
-      ? form.selectedAssignees.join(", ")
-      : "แตะเพื่อเลือก";
 
   const headerText = initialTask ? "แก้ไขงาน" : "สร้างงานใหม่";
 
@@ -269,7 +275,10 @@ export default function CreateTaskModal({
             </View>
 
             <Text style={styles.sectionLabel}>รายชื่อผู้รับงานนี้</Text>
-            <TouchableOpacity onPress={() => setAssigneeModalOpen(true)}>
+            <TouchableOpacity
+              onPress={() => setAssigneeModalOpen(true)}
+              disabled={initialTask ? true : false}
+            >
               <Card
                 mode="outlined"
                 style={{ borderRadius: 12, marginBottom: 12 }}
@@ -281,7 +290,9 @@ export default function CreateTaskModal({
                       color: "#111827",
                     }}
                   >
-                    {assigneeSummary}
+                    {form.assignees && form.assignees.length > 1
+                      ? form.assignees.map((v) => v.username).join(" - ")
+                      : "เลือก"}
                   </Text>
                 </Card.Content>
               </Card>
@@ -289,7 +300,7 @@ export default function CreateTaskModal({
 
             <TextInput
               mode="outlined"
-              label="ค่าแรงแล้ว"
+              label="จ่ายแล้ว"
               value={form.paid_amount}
               onChangeText={(v) =>
                 setForm({ ...form, paid_amount: v.replace(/[^0-9.]/g, "") })
@@ -322,7 +333,7 @@ export default function CreateTaskModal({
               multiline
             />
 
-            <Text style={styles.sectionLabel}>ความคืบหน้า (0 - 1)</Text>
+            {/* <Text style={styles.sectionLabel}>ความคืบหน้า (0 - 1)</Text>
             <TextInput
               mode="outlined"
               label="Progress"
@@ -333,7 +344,7 @@ export default function CreateTaskModal({
               keyboardType="numeric"
               right={<TextInput.Affix text="/1" />}
               style={styles.input}
-            />
+            /> */}
 
             <View style={styles.footerRow}>
               <Button
@@ -385,23 +396,19 @@ export default function CreateTaskModal({
         />
 
         {/* Assignees */}
-        <AssigneePickerModal
-          open={assigneeModalOpen}
-          onClose={() => setAssigneeModalOpen(false)}
-          initial={form.assignees}
-          onConfirm={(cfgs) => {
-            const names = cfgs.filter((a) => a.selected).map((a) => a.name);
-            setForm((f) => ({
-              ...f,
-              assignees: cfgs,
-              selectedAssignees: names,
-            }));
-            setAssigneeModalOpen(false);
-          }}
-          onResetInitial={() => {
-            setForm((f) => ({ ...f, assignees: makeDefaultAssignees() }));
-          }}
-        />
+        {assignees && (
+          <AssigneePickerModal
+            open={assigneeModalOpen}
+            onClose={() => setAssigneeModalOpen(false)}
+            initial={assignees}
+            selecteds={selecteds}
+            onConfirm={(res) => {
+              setSelecteds(res as any);
+              console.log("res ====>", res);
+            }}
+            onResetInitial={() => {}}
+          />
+        )}
       </Modal>
     </Portal>
   );

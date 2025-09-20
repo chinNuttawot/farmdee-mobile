@@ -18,10 +18,15 @@ export type Task = {
 
 export type AssigneeConfig = {
     name: string;
-    isDaily: boolean;     // พนักงานรายวัน?
-    selected: boolean;
+    username?: string;
+    pay_type?: string;
     useDefault: boolean;  // true = ใช้ราคาตามตั้งค่า, false = กำหนดราคาเอง
-    pricePerUnit?: string; // ไม่รายวัน
-    pricePerHour?: string; // ไม่รายวัน (label แสดงเป็น "ราคาซ่อม / บาท")
-    pricePerDay?: string;  // รายวัน
+    ratePerRai?: string; // ไม่รายวัน
+    repairRate?: string; // ไม่รายวัน (label แสดงเป็น "ราคาซ่อม / บาท")
+    dailyRate?: string;  // รายวัน
+    rate_per_rai?: string;
+    repair_rate?: string;
+    daily_rate?: string;
+    isDaily?: boolean;
+    selected?: boolean;
 };

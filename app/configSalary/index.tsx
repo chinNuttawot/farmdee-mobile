@@ -17,13 +17,13 @@ const CARD_BORDER = "#DDEDDC"; // เส้นขอบการ์ดเขี�
 const SHADOW = "rgba(0,0,0,0.08)";
 
 export default function ConfigSalary() {
-  const [ratePerRai, setRatePerRai] = useState("40");
+  const [dailyRate, setdailyRate] = useState("40");
   const [rateRepair, setRateRepair] = useState("300");
   const [isDaily, setIsDaily] = useState(false);
   const [ratePerDay, setRatePerDay] = useState("250");
   const { name } = useLocalSearchParams<{ name?: string }>();
   const handleSave = () => {
-    console.log({ ratePerRai, rateRepair, isDaily, ratePerDay });
+    console.log("handleSave ::",{ dailyRate, rateRepair, isDaily, ratePerDay });
   };
 
   return (
@@ -46,8 +46,8 @@ export default function ConfigSalary() {
           <Text style={sx.label}>ราคาต่อไร่ / บาท</Text>
           <TextInput
             mode="flat"
-            value={ratePerRai}
-            onChangeText={setRatePerRai}
+            value={dailyRate}
+            onChangeText={setdailyRate}
             keyboardType="numeric"
             left={<TextInput.Icon icon="calculator-variant" />}
             right={<TextInput.Affix text="B" />}
