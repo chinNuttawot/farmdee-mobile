@@ -24,6 +24,7 @@ import { ASSIGNEE_OPTIONS, STATUS_COLORS } from "../../lib/constants";
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
 import AssigneePickerModal from "./AssigneePickerModal";
 import { userService } from "@/service";
+import moment from "moment";
 
 // ✅ ขยายชนิด task ที่จะส่งออก/รับเข้า modal
 export type TaskWithMeta = Task & {
@@ -62,8 +63,10 @@ export default function CreateTaskModal({
   const [assignees, setAssignees] = useState([]);
   const [selecteds, setSelecteds] = useState([]);
   useEffect(() => {
-    getData();
-  }, []);
+    if (open) {
+      getData();
+    }
+  }, [open]);
 
   const getData = async () => {
     const res = await makeDefaultAssignees();
@@ -72,8 +75,9 @@ export default function CreateTaskModal({
   const makeDefaultAssignees = async (selectedNames: string[] = []) => {
     const { data } = await userService({ role: "user" });
     const res = data.items;
-    return res.map((v) => ({
-      name: v.username,
+    return res.map((v: any) => ({
+      name: v.username, // ✅ ใช้ username ให้ตรงกับที่ UI อ่าน
+      username: v.username, // ✅ ใช้ username ให้ตรงกับที่ UI อ่าน
       isDaily: v.pay_type === "daily",
       selected: selectedNames.includes(v.username),
       useDefault: true,
@@ -162,19 +166,23 @@ export default function CreateTaskModal({
   };
 
   const save = () => {
-    const startD = new Date(form.start);
-    const endD = new Date(form.end);
+    const startD = moment(form.start).format("YYYY-MM-DD");
+    const endD = moment(form.end).format("YYYY-MM-DD");
     const total_amount = toNumber(form.total);
-    const progress = toProgress(form.progress);
-
     const isEdit = !!initialTask;
-    const baseStatus = isEdit ? initialTask!.status : "Pending";
-    const baseColor = isEdit ? initialTask!.color : STATUS_COLORS["Pending"];
+    const today = moment().startOf("day");
+    const start = moment(startD, "YYYY-MM-DD", true);
+    const newStatus = start.isSame(today, "day")
+      ? "InProgress"
+      : start.isAfter(today, "day")
+      ? "Pending"
+      : "Done";
+    const baseStatus = isEdit ? initialTask!.status : newStatus;
+    const baseColor = isEdit ? initialTask!.color : STATUS_COLORS[newStatus];
 
-    const newTask: TaskWithMeta = {
-      id: isEdit ? initialTask!.id : `user-${Date.now()}`,
+    let newTask: TaskWithMeta = {
       title: form.title || (isEdit ? initialTask!.title : "งานใหม่"),
-      total_amount,
+      totalAmount: total_amount,
       status: baseStatus,
       color: baseColor,
       startDate: startD,
@@ -182,14 +190,19 @@ export default function CreateTaskModal({
       jobType: form.jobType,
       note: form.detail || "",
       assigneeConfigs: form.assignees.length ? form.assignees : [],
-      progress,
-      // ✅ เก็บ meta ลง task ทุกครั้ง (ทั้ง create/edit)
       area: form.area ? Number(form.area) : undefined, // เป็นทศนิยมได้
       trucks: form.trucks ? toInt(form.trucks) : undefined, // เป็นจำนวนเต็ม
-      paid_amount: form.paid_amount ? toNumber(form.paid_amount) : undefined,
+      paidAmount: form.paid_amount ? toNumber(form.paid_amount) : undefined,
     };
-
+    if (isEdit) {
+      newTask = {
+        id: initialTask.id,
+        ...newTask,
+      };
+    }
     onSubmit(newTask);
+    setAssignees([]);
+    setSelecteds([]);
     resetFormAndClose();
   };
 
@@ -223,43 +236,58 @@ export default function CreateTaskModal({
               onValueChange={(v) => setForm({ ...form, jobType: v as JobType })}
               style={{ marginBottom: 12 }}
               buttons={[
-                { value: "งานไร่", label: "งานไร่" },
-                { value: "งานซ่อม", label: "งานซ่อม" },
+                { value: "งานไร่", label: "งานไร่", disabled: !!initialTask },
+                { value: "งานซ่อม", label: "งานซ่อม", disabled: !!initialTask },
               ]}
             />
 
             <View style={styles.row2}>
-              <TextInput
-                mode="outlined"
-                label="วันที่เริ่ม"
-                value={form.start}
-                editable={false}
-                onPressIn={() => setPickerFor("start")}
-                left={<TextInput.Icon icon="calendar" />}
-                style={[styles.input, styles.col]}
-              />
-              <TextInput
-                mode="outlined"
-                label="วันที่สิ้นสุด"
-                value={form.end}
-                editable={false}
-                onPressIn={() => setPickerFor("end")}
-                left={<TextInput.Icon icon="calendar" />}
-                style={[styles.input, styles.col]}
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  setPickerFor("start");
+                }}
+              >
+                <TextInput
+                  mode="outlined"
+                  label="วันที่เริ่ม"
+                  value={form.start}
+                  editable={false}
+                  left={<TextInput.Icon icon="calendar" />}
+                  style={[styles.input, styles.col]}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setPickerFor("end");
+                }}
+              >
+                <TextInput
+                  mode="outlined"
+                  label="วันที่สิ้นสุด"
+                  value={form.end}
+                  editable={false}
+                  left={<TextInput.Icon icon="calendar" />}
+                  style={[styles.input, styles.col]}
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.row2}>
               <TextInput
                 mode="outlined"
                 label="จำนวนไร่"
+                editable={form.jobType === "งานไร่"}
                 value={form.area}
                 onChangeText={(v) =>
                   setForm({ ...form, area: v.replace(/[^0-9.]/g, "") })
                 }
                 keyboardType="numeric"
                 right={<TextInput.Affix text="ไร่" />}
-                style={[styles.input, styles.col]}
+                style={[
+                  styles.input,
+                  styles.col,
+                  form.jobType !== "งานไร่" && styles.hideStyle,
+                ]}
               />
               <TextInput
                 mode="outlined"
@@ -290,8 +318,11 @@ export default function CreateTaskModal({
                       color: "#111827",
                     }}
                   >
-                    {form.assignees && form.assignees.length > 1
-                      ? form.assignees.map((v) => v.username).join(" - ")
+                    {form.assignees && form.assignees.length > 0
+                      ? form.assignees
+                          .map((v: any) => v.username ?? v.name) // เผื่อข้อมูลเก่า
+                          .filter(Boolean)
+                          .join(" - ")
                       : "เลือก"}
                   </Text>
                 </Card.Content>
@@ -404,7 +435,21 @@ export default function CreateTaskModal({
             selecteds={selecteds}
             onConfirm={(res) => {
               setSelecteds(res as any);
-              console.log("res ====>", res);
+              const selectedAssignees = res
+                .filter((x: any) => x.selected)
+                .map((x: any) => ({
+                  username: x.username ?? x.name,
+                  useDefault: x.useDefault ?? true,
+                  ratePerRai: x.ratePerRai,
+                  repairRate: x.repairRate,
+                  dailyRate: x.dailyRate,
+                  isDaily: x.isDaily,
+                }));
+
+              setForm((prev) => ({
+                ...prev,
+                assignees: selectedAssignees,
+              }));
             }}
             onResetInitial={() => {}}
           />

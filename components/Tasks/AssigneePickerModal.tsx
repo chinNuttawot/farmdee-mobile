@@ -31,9 +31,15 @@ export default function AssigneePickerModal({
   onResetInitial: () => void; // เรียกเมื่อปิดเพื่อเคลียร์ค่า default รอบถัดไป
 }) {
   const [cfgs, setCfgs] = useState<AssigneeConfig[]>();
+
   useEffect(() => {
-    setCfgs(initial);
-  }, [open, initial]);
+    const merged = initial.map((item) => {
+      const found = selecteds.find((d) => d.name === item.name);
+      return found ? found : item;
+    });
+
+    setCfgs(merged);
+  }, [open, initial, selecteds]);
 
   const toggleSelected = (i: number) => {
     setCfgs((arr) =>
@@ -198,7 +204,9 @@ export default function AssigneePickerModal({
           <Button
             mode="contained"
             onPress={() => {
-              const res = cfgs?.filter((v) => v.selected);
+              const res = cfgs
+                ?.filter((v) => v.selected)
+                .map((v2) => ({ ...v2, username: v2.name }));
               onConfirm(res as AssigneeConfig[]);
               clearLocalAndClose();
             }}

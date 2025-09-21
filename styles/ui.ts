@@ -169,7 +169,7 @@ export const styles = StyleSheet.create({
         marginHorizontal: 2,
         ...(shadow as any),
     },
-
+    hideStyle: { backgroundColor: "#d3d2d2ff", },
     // FAB แบบในภาพ
     fabWrap: {
         position: "absolute",

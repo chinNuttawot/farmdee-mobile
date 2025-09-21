@@ -2,18 +2,18 @@ import { authToken } from "@/providers/keyStorageUtilliy";
 import { StorageUtility } from "@/providers/storageUtility";
 import api from "../apiCore";
 
-export const userService = async (params = {}): Promise<any> => {
+export const tasksUpdateService = async (data: any): Promise<any> => {
   try {
     const token = await StorageUtility.get(authToken);
-
-    const response = await api.get<any>("/users", {
-      params,
+    const { id, ...newData } = data;
+    const url = `/tasks/${id}`;
+    const response = await api.patch<any>(url, newData, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error: any) {
     if (error.response) {
-      alert("userService : " + error.response.data.message);
+      alert("tasksUpdateService : " + error.response.data.message);
     }
     throw error;
   }

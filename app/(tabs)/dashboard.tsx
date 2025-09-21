@@ -6,11 +6,7 @@ import Header from "../../components/Header";
 
 import { styles } from "../../styles/ui";
 import { STATUS_COLORS } from "../../lib/constants";
-import {
-  inRange,
-  formatAPI,
-  startOfDay,
-} from "../../lib/date";
+import { inRange, formatAPI, startOfDay } from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
@@ -22,7 +18,12 @@ import StatusFilterChips from "../../components/Tasks/StatusFilterChips";
 import TaskSearchBar from "../../components/Tasks/TaskSearchBar";
 import TaskEmptyCard from "../../components/Tasks/TaskEmptyCard";
 import DayResultText from "../../components/Tasks/DayResultText";
-import { tasksService } from "@/service/index";
+import {
+  tasksDeleteService,
+  tasksSaveService,
+  tasksService,
+  tasksUpdateService,
+} from "@/service/index";
 
 // ✅ ขยายชนิด task ฝั่งแอปให้เก็บเมตาได้
 export type TaskWithMeta = Task & {
@@ -43,17 +44,43 @@ export default function Dashboard() {
 
   useEffect(() => {
     getData();
-  }, [selectedDate]);
+  }, [selectedDate, status, search]);
 
   const getData = async () => {
     try {
-      const from = formatAPI(selectedDate);
-      const { data } = await tasksService({ from });
-      setTasks(data.items);
-    } catch (err) {
-      alert("เกิดข้อมพิดพลาด");
+      const params: { from: string; status?: string; title?: string } = {
+        from: formatAPI(selectedDate),
+      };
+      if (status && status !== "ทั้งหมด") {
+        params.status = status;
+      }
+      const q = (search ?? "").trim();
+      if (q) {
+        params.title = q.split(/\s+/).join("|");
+      }
+      const { data } = await tasksService(params);
+      setTasks(Array.isArray(data?.items) ? data.items : []);
+    } catch (err: any) {
+      alert(err?.message ?? "getData: เกิดข้อผิดพลาด");
     }
   };
+
+  const saveData = async (data: any, model: string) => {
+    try {
+      if (model === "New") {
+        await tasksSaveService(data);
+      } else if (model === "Edit") {
+        await tasksUpdateService(data);
+      } else if (model === "Delete") {
+        await tasksDeleteService(data.id);
+      }
+    } catch (err) {
+      alert("saveData : เกิดข้อมพิดพลาด");
+    } finally {
+      getData();
+    }
+  };
+
   const filtered = useMemo(() => {
     return tasks;
   }, [tasks]);
@@ -109,9 +136,7 @@ export default function Dashboard() {
                 console.log("open detail:", tk.id);
               }}
               onEdit={(tk) => openEditMode(tk as TaskWithMeta)}
-              onDelete={(tk) =>
-                setTasks((prev) => prev.filter((x) => x.id !== tk.id))
-              }
+              onDelete={(tk) => saveData(tk, "Delete")}
               onChangeStatus={(tk, next) =>
                 setTasks((prev) =>
                   prev.map((x) =>
@@ -145,13 +170,8 @@ export default function Dashboard() {
         initialTask={editingTask ?? undefined}
         onSubmit={(task) => {
           const t = task as TaskWithMeta;
-          if (editingTask) {
-            // edit -> update by id
-            setTasks((prev) => prev.map((x) => (x.id === t.id ? t : x)));
-          } else {
-            // create -> prepend
-            setTasks((prev) => [t, ...prev]);
-          }
+          const model = editingTask ? "Edit" : "New";
+          saveData(t, model);
           closeModal();
         }}
       />

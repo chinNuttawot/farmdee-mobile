@@ -23,7 +23,7 @@ export const Profile = async (): Promise<any> => {
     return dataLogin.data;
   } catch (error: any) {
     if (error.response) {
-      alert(error.response.data.message);
+      alert("Profile : " + error.response.data.message);
     }
     throw error;
   }

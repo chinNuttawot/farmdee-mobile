@@ -18,6 +18,7 @@ import { styles } from "../../styles/ui";
 
 type Props = {
   task: Task;
+  job_type?: Task;
   onEdit?: (t: Task) => void;
   onDelete?: (t: Task) => void;
   onChangeStatus?: (t: Task, next: StatusType) => void;
@@ -42,7 +43,7 @@ export default function TaskCard({
   const left = (props: any) => (
     <Avatar.Icon
       {...props}
-      icon={task.jobType === "งานซ่อม" ? "wrench" : "leaf"}
+      icon={(task.jobType || task.job_type) === "งานซ่อม" ? "wrench" : "leaf"}
       size={40}
       color="white"
       style={{ backgroundColor: color }}
@@ -92,9 +93,9 @@ export default function TaskCard({
 
       <Card.Content style={{ gap: 8 }}>
         <Text style={{ color: "#6B7280" }}>
-          {`เริ่ม: ${formatAPI(
-            task.startDate
-          )} • กำหนดส่ง: ${formatAPI(task.endDate)}`}
+          {`เริ่ม: ${formatAPI(task.startDate)} • กำหนดส่ง: ${formatAPI(
+            task.endDate
+          )}`}
         </Text>
 
         {task.jobType ? (
