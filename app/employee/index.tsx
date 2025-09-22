@@ -37,10 +37,10 @@ export default function EmployeeScreen() {
     }
   };
 
-  const goSalary = (id: number) => {
+  const goSalary = (emp: any) => {
     router.push({
       pathname: `/${menuName}` as any,
-      params: { id },
+      params: { id: emp.id as number, ...emp },
     });
   };
 
@@ -68,7 +68,7 @@ export default function EmployeeScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.row}
-                onPress={() => goSalary(item.id)}
+                onPress={() => goSalary(item)}
                 activeOpacity={0.7}
               >
                 {/* ไอคอนวงกลมซ้าย */}
@@ -84,7 +84,7 @@ export default function EmployeeScreen() {
                   icon="chevron-right"
                   size={22}
                   style={styles.chevron}
-                  onPress={() => goSalary(item.id)}
+                  onPress={() => goSalary(item)}
                 />
               </TouchableOpacity>
             )}

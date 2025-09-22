@@ -8,6 +8,7 @@ import { tasksDeleteService } from "./tasksDeleteService/lindex";
 import { tasksSaveService } from "./tasksSaveService/lindex";
 import { tasksService } from "./tasksService/lindex";
 import { tasksUpdateService } from "./tasksUpdateService/lindex";
+import { userConfigSalaryService } from "./userConfigSalaryService/lindex";
 import { userService } from "./userService/lindex";
 
 export {
@@ -22,4 +23,5 @@ export {
   expensesUpdateService,
   expensesSaveService,
   expensesDeleteService,
+  userConfigSalaryService,
 };
