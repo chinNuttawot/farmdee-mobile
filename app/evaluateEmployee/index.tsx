@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { Text, TextInput, Button, Avatar } from "react-native-paper";
 
-
 const GREEN = "#2E7D32";
 const BG_SOFT = "#F2F7F2";
 const INPUT_BG = "#EAF7E9";
@@ -21,10 +20,9 @@ const SHADOW = "rgba(0,0,0,0.08)";
 type Question = { id: string; text: string; max: number };
 
 export default function EvaluateEmployee() {
-   
   const [scores, setScores] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
-  const [position, setPosition] = useState("ชื่อตัวรถ");
+  const [position, setPosition] = useState("");
 
   const part1: Question[] = [
     { id: "q1", text: "ไม่ขับขี่ประมาท/เคารพกฏ (เต็ม 20)", max: 20 },
@@ -42,7 +40,11 @@ export default function EvaluateEmployee() {
       text: "สามารถเช็ครถให้Doneครบ ได้ในเวลา 8:30 น. ของทุกวัน (เต็ม 50)",
       max: 50,
     },
-    { id: "q6", text: "เกี่ยวDoneตามคิวงานที่ได้รับมอบหมาย (เต็ม 20)", max: 20 },
+    {
+      id: "q6",
+      text: "เกี่ยวDoneตามคิวงานที่ได้รับมอบหมาย (เต็ม 20)",
+      max: 20,
+    },
     { id: "q7", text: "งานซ่อมบำรุงทำต่อเนื่อง (เต็ม 30)", max: 30 },
   ];
 
@@ -75,11 +77,6 @@ export default function EvaluateEmployee() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
     >
-      {/* Header */}
-      <View style={sx.header}>
-        <Text style={sx.headerText}>ประเมินพนักงาน</Text>
-      </View>
-
       <ScrollView
         contentContainerStyle={sx.screenPad}
         keyboardShouldPersistTaps="handled"
@@ -97,11 +94,13 @@ export default function EvaluateEmployee() {
                   <Text style={sx.tagText}>ระบุตัวรถ</Text>
                 </View>
                 <TextInput
+                  placeholder="ระบุตัวรถ"
+                  placeholderTextColor={"#000"}
                   mode="flat"
                   value={position}
                   onChangeText={setPosition}
                   style={sx.positionInput}
-                  left={<TextInput.Icon icon="briefcase" />}
+                  left={<TextInput.Icon icon="car" />}
                   underlineColor="transparent"
                 />
               </View>
