@@ -25,14 +25,6 @@ export default function TaskSearchBar({
         onSubmitEditing={onSubmit}
         style={styles.search}
       />
-      {!!value && (
-        <IconButton
-          icon="close-circle"
-          onPress={onClear}
-          style={{ position: "absolute", right: 0, top: 4 }}
-          size={20}
-        />
-      )}
     </View>
   );
 }

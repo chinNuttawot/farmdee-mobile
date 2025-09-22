@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { TextInput, Text, Divider, IconButton } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "@/node_modules/expo-router/build/hooks";
 import { useNavigation } from "@/node_modules/expo-router/build/useNavigation";
+import { userService } from "@/service";
 
 type Employee = { id: string; name: string };
 
@@ -19,17 +20,27 @@ const DATA: Employee[] = [
 export default function EmployeeScreen() {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [list, setList] = useState<any[]>([]);
   const navigation = useNavigation();
   const { menuName } = useLocalSearchParams<{ menuName?: string }>();
-  const list = useMemo(
-    () => DATA.filter((x) => x.name.toLowerCase().includes(q.toLowerCase())),
-    [q]
-  );
 
-  const goSalary = (name) => {
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const getData = async () => {
+    try {
+      const { data } = await userService({ role: "user" });
+      setList(Array.isArray(data?.items) ? data.items : []);
+    } catch (err: any) {
+      alert(err?.message ?? "getData: เกิดข้อผิดพลาด");
+    }
+  };
+
+  const goSalary = (id: number) => {
     router.push({
-      pathname: `/${menuName}`,
-      params: { name },
+      pathname: `/${menuName}` as any,
+      params: { id },
     });
   };
 
@@ -37,7 +48,7 @@ export default function EmployeeScreen() {
     <View style={styles.container}>
       <View style={styles.centerWrap}>
         {/* ค้นหา */}
-        <TextInput
+        {/* <TextInput
           mode="flat"
           placeholder="ค้นหาชื่อพนักงาน"
           value={q}
@@ -46,7 +57,7 @@ export default function EmployeeScreen() {
           style={styles.search}
           underlineColor="transparent"
           theme={{ colors: { background: "#fff" } }}
-        />
+        /> */}
 
         {/* Card ใหญ่ รวมทุกแถว */}
         <View style={styles.card}>
@@ -57,7 +68,7 @@ export default function EmployeeScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.row}
-                onPress={() => goSalary(item.name)}
+                onPress={() => goSalary(item.id)}
                 activeOpacity={0.7}
               >
                 {/* ไอคอนวงกลมซ้าย */}
@@ -66,14 +77,14 @@ export default function EmployeeScreen() {
                 </View>
 
                 <Text style={styles.name} numberOfLines={1}>
-                  {item.name}
+                  {item.full_name}
                 </Text>
 
                 <IconButton
                   icon="chevron-right"
                   size={22}
                   style={styles.chevron}
-                  onPress={() => goSalary(item.name)}
+                  onPress={() => goSalary(item.id)}
                 />
               </TouchableOpacity>
             )}

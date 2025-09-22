@@ -11,7 +11,7 @@ export const logoutService = async (data: any) => {
     return response;
   } catch (error: any) {
     if (error.response) {
-      alert("logoutService : " + error.response.data.message);
+      alert("logoutService : " + error.response.data.error);
     }
     throw error;
   }

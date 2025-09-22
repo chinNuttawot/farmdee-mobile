@@ -93,8 +93,8 @@ export default function TaskCard({
 
       <Card.Content style={{ gap: 8 }}>
         <Text style={{ color: "#6B7280" }}>
-          {`เริ่ม: ${formatAPI(task.startDate)} • กำหนดส่ง: ${formatAPI(
-            task.endDate
+          {`เริ่ม: ${formatAPI(task.start_date)} • กำหนดส่ง: ${formatAPI(
+            task.end_date
           )}`}
         </Text>
 

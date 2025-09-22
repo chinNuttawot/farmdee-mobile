@@ -3,9 +3,11 @@ import { Appbar, useTheme } from "react-native-paper";
 import { StyleSheet, Platform } from "react-native";
 
 type Props = {
-  title: string;
+  title?: string;
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  backgroundColor?: string;
+  color?: string;
 };
 
 export default function Header({ title, onBack, rightAction }: Props) {

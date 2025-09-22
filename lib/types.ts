@@ -8,12 +8,13 @@ export type Task = {
     total_amount: number;
     status: StatusType;
     color: string;
-    startDate: Date;
-    endDate: Date;
     jobType?: JobType;
     note?: string;
     tags?: string[];
     progress?: number;
+    start_date?: string;
+    end_date?: string;
+    job_type?: string;
 };
 
 export type AssigneeConfig = {

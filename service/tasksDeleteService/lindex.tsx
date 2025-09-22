@@ -12,7 +12,7 @@ export const tasksDeleteService = async (id: any): Promise<any> => {
     return response.data;
   } catch (error: any) {
     if (error.response) {
-      alert("tasksDeleteService : " + error.response.data.message);
+      alert("tasksDeleteService : " + error.response.data.error);
     }
     throw error;
   }

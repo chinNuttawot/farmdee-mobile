@@ -19,7 +19,7 @@ import {
 import { styles } from "../../styles/ui";
 import { Task, JobType, AssigneeConfig } from "../../lib/types";
 import { formatAPI } from "../../lib/date";
-import { ASSIGNEE_OPTIONS, STATUS_COLORS } from "../../lib/constants";
+import { STATUS_COLORS } from "../../lib/constants";
 
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
 import AssigneePickerModal from "./AssigneePickerModal";
@@ -28,7 +28,7 @@ import moment from "moment";
 
 // ✅ ขยายชนิด task ที่จะส่งออก/รับเข้า modal
 export type TaskWithMeta = Task & {
-  area?: string;
+  area?: number;
   trucks?: number;
   paid_amount?: number;
 };
@@ -47,6 +47,23 @@ type CreateTaskForm = {
   progress: string; // 0..1
 };
 
+// ===== helpers: แปลงตัวเลขและล้างศูนย์นำหน้า =====
+const stripLeadingZeros = (s: string) => s.replace(/^0+(?=\d)/, "");
+
+const sanitizeInt = (s: string) => {
+  const onlyDigits = (s || "").replace(/[^\d]/g, "");
+  return stripLeadingZeros(onlyDigits);
+};
+
+const sanitizeDecimal = (s: string) => {
+  // เก็บเฉพาะเลข/จุด, บังคับไม่ให้จุดขึ้นต้น, อนุญาตจุดเดียว
+  let out = (s || "").replace(/[^\d.]/g, "");
+  out = out.replace(/^\./, "0."); // แก้ ".5" -> "0.5"
+  out = out.replace(/(\..*)\./g, "$1"); // ตัดจุดเกินตัวแรก
+  out = stripLeadingZeros(out); // ตัด 0 นำหน้าเลข เช่น "00012" -> "12", คง "0.5" ไว้
+  return out;
+};
+
 export default function CreateTaskModal({
   open,
   onClose,
@@ -60,24 +77,24 @@ export default function CreateTaskModal({
   onSubmit: (task: TaskWithMeta) => void;
   initialTask?: TaskWithMeta;
 }) {
-  const [assignees, setAssignees] = useState([]);
-  const [selecteds, setSelecteds] = useState([]);
+  const [assignees, setAssignees] = useState<any[]>([]);
+  const [selecteds, setSelecteds] = useState<any[]>([]);
+
   useEffect(() => {
-    if (open) {
-      getData();
-    }
+    if (open) void getData();
   }, [open]);
 
   const getData = async () => {
     const res = await makeDefaultAssignees();
     setAssignees(res);
   };
+
   const makeDefaultAssignees = async (selectedNames: string[] = []) => {
     const { data } = await userService({ role: "user" });
-    const res = data.items;
+    const res = data.items ?? [];
     return res.map((v: any) => ({
-      name: v.username, // ✅ ใช้ username ให้ตรงกับที่ UI อ่าน
-      username: v.username, // ✅ ใช้ username ให้ตรงกับที่ UI อ่าน
+      name: v.username,
+      username: v.username,
       isDaily: v.pay_type === "daily",
       selected: selectedNames.includes(v.username),
       useDefault: true,
@@ -87,23 +104,23 @@ export default function CreateTaskModal({
     }));
   };
 
-  const makeDefaultForm = async (date: Date): CreateTaskForm => {
-    return {
-      title: "",
-      jobType: "งานไร่",
-      start: formatAPI(date),
-      end: formatAPI(date),
-      area: "",
-      trucks: "",
-      assignees: [],
-      paid_amount: "",
-      total: "",
-      detail: "",
-      progress: "0",
-    };
-  };
+  const makeDefaultForm = (date: Date): CreateTaskForm => ({
+    title: "",
+    jobType: "งานไร่",
+    start: formatAPI(date),
+    end: formatAPI(date),
+    area: "",
+    trucks: "",
+    assignees: [],
+    paid_amount: "",
+    total: "",
+    detail: "",
+    progress: "0",
+  });
 
-  const [form, setForm] = useState<CreateTaskForm>({});
+  const [form, setForm] = useState<CreateTaskForm>(
+    makeDefaultForm(defaultDate)
+  );
   const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<"start" | "end" | null>(null);
 
@@ -111,45 +128,45 @@ export default function CreateTaskModal({
     if (!open) return;
 
     if (initialTask) {
-      const data = {
+      const data: CreateTaskForm = {
         title: initialTask.title ?? "",
         jobType: (initialTask.jobType as JobType) || "งานไร่",
-        start: formatAPI(initialTask.startDate ?? defaultDate),
-        end: formatAPI(initialTask.endDate ?? defaultDate),
-        // ✅ prefill 3 ช่องนี้จาก task เดิม (ถ้ามี)
-        area: initialTask.area != null ? String(initialTask.area) : "",
-        trucks: initialTask.trucks != null ? String(initialTask.trucks) : "",
-        assignees: initialTask.assignees || [],
+        start: formatAPI(initialTask.start_date ?? defaultDate),
+        end: formatAPI(initialTask.end_date ?? defaultDate),
+
+        // ✅ prefill ค่าเริ่มต้น (0 จะถูกแปลงเป็น "0")
+        area:
+          initialTask.area != null
+            ? sanitizeDecimal(String(initialTask.area))
+            : "",
+        trucks:
+          initialTask.trucks != null
+            ? sanitizeInt(String(initialTask.trucks))
+            : "",
+        assignees: (initialTask as any).assignees || [],
         paid_amount:
-          initialTask.paid_amount != null
-            ? String(initialTask.paid_amount)
+          (initialTask as any).paid_amount != null
+            ? sanitizeDecimal(String((initialTask as any).paid_amount))
             : "",
         total:
-          initialTask.total_amount != null
-            ? String(initialTask.total_amount)
+          (initialTask as any).total_amount != null
+            ? sanitizeDecimal(String((initialTask as any).total_amount))
             : "",
         detail: initialTask.note ?? "",
         progress:
-          typeof initialTask.progress === "number"
-            ? String(Math.max(0, Math.min(1, Number(initialTask.progress))))
+          typeof (initialTask as any).progress === "number"
+            ? String(
+                Math.max(0, Math.min(1, Number((initialTask as any).progress)))
+              )
             : "0",
       };
       setForm(data);
     } else {
-      getDatamakeDefaultForm();
+      setForm(makeDefaultForm(defaultDate));
     }
     setAssigneeModalOpen(false);
     setPickerFor(null);
   }, [open, defaultDate, initialTask]);
-
-  const getDatamakeDefaultForm = async () => {
-    const res = await makeDefaultForm(defaultDate);
-    setForm(res);
-  };
-  const resetFormAndClose = () => {
-    setForm(makeDefaultForm(defaultDate));
-    onClose();
-  };
 
   const toNumber = (s: string) => {
     const n = Number((s || "").replace(/[^\d.]/g, ""));
@@ -159,17 +176,13 @@ export default function CreateTaskModal({
     const n = parseInt((s || "").replace(/[^\d]/g, ""), 10);
     return Number.isFinite(n) ? n : 0;
   };
-  const toProgress = (s: string) => {
-    const n = Number((s || "").replace(/[^\d.]/g, ""));
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.min(1, n));
-  };
 
   const save = () => {
     const startD = moment(form.start).format("YYYY-MM-DD");
     const endD = moment(form.end).format("YYYY-MM-DD");
     const total_amount = toNumber(form.total);
     const isEdit = !!initialTask;
+
     const today = moment().startOf("day");
     const start = moment(startD, "YYYY-MM-DD", true);
     const newStatus = start.isSame(today, "day")
@@ -190,20 +203,20 @@ export default function CreateTaskModal({
       jobType: form.jobType,
       note: form.detail || "",
       assigneeConfigs: form.assignees.length ? form.assignees : [],
-      area: form.area ? Number(form.area) : undefined, // เป็นทศนิยมได้
-      trucks: form.trucks ? toInt(form.trucks) : undefined, // เป็นจำนวนเต็ม
-      paidAmount: form.paid_amount ? toNumber(form.paid_amount) : undefined,
+      area: form.area ? Number(form.area) : 0,
+      trucks: form.trucks ? toInt(form.trucks) : 0,
+      paidAmount: form.paid_amount ? toNumber(form.paid_amount) : 0,
     };
+
     if (isEdit) {
-      newTask = {
-        id: initialTask.id,
-        ...newTask,
-      };
+      newTask = { id: initialTask!.id, ...newTask };
     }
+
     onSubmit(newTask);
     setAssignees([]);
     setSelecteds([]);
-    resetFormAndClose();
+    setForm(makeDefaultForm(defaultDate));
+    onClose();
   };
 
   const headerText = initialTask ? "แก้ไขงาน" : "สร้างงานใหม่";
@@ -242,34 +255,25 @@ export default function CreateTaskModal({
             />
 
             <View style={styles.row2}>
-              <TouchableOpacity
-                onPress={() => {
-                  setPickerFor("start");
-                }}
-              >
-                <TextInput
-                  mode="outlined"
-                  label="วันที่เริ่ม"
-                  value={form.start}
-                  editable={false}
-                  left={<TextInput.Icon icon="calendar" />}
-                  style={[styles.input, styles.col]}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setPickerFor("end");
-                }}
-              >
-                <TextInput
-                  mode="outlined"
-                  label="วันที่สิ้นสุด"
-                  value={form.end}
-                  editable={false}
-                  left={<TextInput.Icon icon="calendar" />}
-                  style={[styles.input, styles.col]}
-                />
-              </TouchableOpacity>
+              <TextInput
+                onPress={() => setPickerFor("start")}
+                mode="outlined"
+                label="วันที่เริ่ม"
+                value={form.start}
+                editable={false}
+                left={<TextInput.Icon icon="calendar" />}
+                style={[styles.input, styles.col]}
+              />
+
+              <TextInput
+                onPress={() => setPickerFor("end")}
+                mode="outlined"
+                label="วันที่สิ้นสุด"
+                value={form.end}
+                editable={false}
+                left={<TextInput.Icon icon="calendar" />}
+                style={[styles.input, styles.col]}
+              />
             </View>
 
             <View style={styles.row2}>
@@ -279,7 +283,7 @@ export default function CreateTaskModal({
                 editable={form.jobType === "งานไร่"}
                 value={form.area}
                 onChangeText={(v) =>
-                  setForm({ ...form, area: v.replace(/[^0-9.]/g, "") })
+                  setForm({ ...form, area: sanitizeDecimal(v) })
                 }
                 keyboardType="numeric"
                 right={<TextInput.Affix text="ไร่" />}
@@ -294,7 +298,7 @@ export default function CreateTaskModal({
                 label="จำนวนรถ"
                 value={form.trucks}
                 onChangeText={(v) =>
-                  setForm({ ...form, trucks: v.replace(/[^0-9]/g, "") })
+                  setForm({ ...form, trucks: sanitizeInt(v) })
                 }
                 keyboardType="numeric"
                 right={<TextInput.Affix text="คัน" />}
@@ -303,38 +307,31 @@ export default function CreateTaskModal({
             </View>
 
             <Text style={styles.sectionLabel}>รายชื่อผู้รับงานนี้</Text>
-            <TouchableOpacity
+
+            <Card
               onPress={() => setAssigneeModalOpen(true)}
-              disabled={initialTask ? true : false}
+              disabled={!!initialTask}
+              mode="outlined"
+              style={{ borderRadius: 12, marginBottom: 12 }}
             >
-              <Card
-                mode="outlined"
-                style={{ borderRadius: 12, marginBottom: 12 }}
-              >
-                <Card.Content>
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      color: "#111827",
-                    }}
-                  >
-                    {form.assignees && form.assignees.length > 0
-                      ? form.assignees
-                          .map((v: any) => v.username ?? v.name) // เผื่อข้อมูลเก่า
-                          .filter(Boolean)
-                          .join(" - ")
-                      : "เลือก"}
-                  </Text>
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
+              <Card.Content>
+                <Text numberOfLines={2} style={{ color: "#111827" }}>
+                  {form.assignees && form.assignees.length > 0
+                    ? form.assignees
+                        .map((v: any) => v.username ?? v.name)
+                        .filter(Boolean)
+                        .join(" - ")
+                    : "เลือก"}
+                </Text>
+              </Card.Content>
+            </Card>
 
             <TextInput
               mode="outlined"
               label="จ่ายแล้ว"
               value={form.paid_amount}
               onChangeText={(v) =>
-                setForm({ ...form, paid_amount: v.replace(/[^0-9.]/g, "") })
+                setForm({ ...form, paid_amount: sanitizeDecimal(v) })
               }
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash" />}
@@ -347,7 +344,7 @@ export default function CreateTaskModal({
               label="จำนวนเงิน (ยอดเต็ม)"
               value={form.total}
               onChangeText={(v) =>
-                setForm({ ...form, total: v.replace(/[^0-9.]/g, "") })
+                setForm({ ...form, total: sanitizeDecimal(v) })
               }
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash-multiple" />}
@@ -364,23 +361,13 @@ export default function CreateTaskModal({
               multiline
             />
 
-            {/* <Text style={styles.sectionLabel}>ความคืบหน้า (0 - 1)</Text>
-            <TextInput
-              mode="outlined"
-              label="Progress"
-              value={form.progress}
-              onChangeText={(v) =>
-                setForm({ ...form, progress: v.replace(/[^0-9.]/g, "") })
-              }
-              keyboardType="numeric"
-              right={<TextInput.Affix text="/1" />}
-              style={styles.input}
-            /> */}
-
             <View style={styles.footerRow}>
               <Button
                 mode="outlined"
-                onPress={resetFormAndClose}
+                onPress={() => {
+                  setForm(makeDefaultForm(defaultDate));
+                  onClose();
+                }}
                 style={styles.footerBtn}
               >
                 ยกเลิก
@@ -435,9 +422,9 @@ export default function CreateTaskModal({
             selecteds={selecteds}
             onConfirm={(res) => {
               setSelecteds(res as any);
-              const selectedAssignees = res
-                .filter((x: any) => x.selected)
-                .map((x: any) => ({
+              const selectedAssignees = (res as any[])
+                .filter((x) => x.selected)
+                .map((x) => ({
                   username: x.username ?? x.name,
                   useDefault: x.useDefault ?? true,
                   ratePerRai: x.ratePerRai,

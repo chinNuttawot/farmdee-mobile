@@ -10,8 +10,10 @@ export const tasksSaveService = async (data = {}): Promise<any> => {
     });
     return response.data;
   } catch (error: any) {
+    console.log("error.response ===>", error.response.data);
+
     if (error.response) {
-      alert("tasksSaveService : " + error.response.data.message);
+      alert("tasksSaveService : " + error.response.data.error);
     }
     throw error;
   }

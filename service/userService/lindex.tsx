@@ -13,7 +13,7 @@ export const userService = async (params = {}): Promise<any> => {
     return response.data;
   } catch (error: any) {
     if (error.response) {
-      alert("userService : " + error.response.data.message);
+      alert("userService : " + error.response.data.error);
     }
     throw error;
   }

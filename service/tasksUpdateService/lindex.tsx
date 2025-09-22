@@ -13,7 +13,7 @@ export const tasksUpdateService = async (data: any): Promise<any> => {
     return response.data;
   } catch (error: any) {
     if (error.response) {
-      alert("tasksUpdateService : " + error.response.data.message);
+      alert("tasksUpdateService : " + error.response.data.error);
     }
     throw error;
   }

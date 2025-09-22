@@ -1,6 +1,6 @@
 // app/(tabs)/clients.tsx
 import Header from "@/components/Header";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import {
   Avatar,
@@ -12,7 +12,11 @@ import {
 } from "react-native-paper";
 import { router } from "expo-router";
 import { useRouter } from "expo-router";
+import { Profile } from "@/service";
+import { StorageUtility } from "@/providers/storageUtility";
+import { PROFILE_KEY } from "@/service/profileService/lindex";
 export default function Clients() {
+  const [user, setUser] = useState<any>({});
   const theme = useTheme();
   const router = useRouter();
   const menuItems = useMemo(
@@ -58,13 +62,22 @@ export default function Clients() {
     []
   );
 
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const getData = async () => {
+    const res = await StorageUtility.get(PROFILE_KEY);
+    setUser(JSON.parse(res));
+  };
+
   const ProfileRender = (
     <View style={[styles.topGreen, { backgroundColor: theme.colors.primary }]}>
       <View style={styles.profileRow}>
         <Avatar.Icon
           size={40}
           icon="account"
-          color={theme.colors.onPrimary}
+          color={"#000"}
           style={{ backgroundColor: `${theme.colors.onPrimary}22` }}
         />
         <View style={{ marginLeft: 12 }}>
@@ -73,7 +86,7 @@ export default function Clients() {
             style={{ color: theme.colors.onPrimary, fontWeight: "700" }}
             numberOfLines={1}
           >
-            นาย เอ สบายดี
+            {user.full_name}
           </Text>
         </View>
       </View>

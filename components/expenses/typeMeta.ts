@@ -1,14 +1,23 @@
 // components/expenses/typeMeta.ts
-export type ExpenseType = "labor" | "material" | "fuel" | "other";
+export type ExpenseType = "labor" | "material" | "fuel";
 
 export type Expense = {
-    id: string;
+    id: number;
     title: string;
-    total_amount: number;
+    amount: number;
     type: ExpenseType;
-    jobNote?: string;
-    qtyNote?: string;
-    workDate?: string;
+    job_note?: string;
+    qty_note?: string;
+    work_date?: string;
+
+    //option
+    created_a?: string;
+    updated_at?: string;
+    created_by?: number;
+    created_by_username?: string;
+    jobNote?: string
+    qtyNote?: string
+    workDate?: string
 };
 
 export const typeMeta: Record<

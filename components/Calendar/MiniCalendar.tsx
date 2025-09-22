@@ -15,7 +15,7 @@ import {
 import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
 
 // ========= ภาษาไทย =========
-const TH_MONTHS = [
+export const TH_MONTHS = [
   "มกราคม",
   "กุมภาพันธ์",
   "มีนาคม",
@@ -29,7 +29,7 @@ const TH_MONTHS = [
   "พฤศจิกายน",
   "ธันวาคม",
 ];
-const TH_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+export const TH_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 // helper: ทำให้เป็น "เที่ยงวัน local" เพื่อกันวันเพี้ยนตอนแปลงเป็น UTC
 function toLocalNoon(d: Date) {

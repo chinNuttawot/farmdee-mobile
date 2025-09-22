@@ -1,7 +1,14 @@
 // app/(tabs)/dashboard.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { FAB } from "react-native-paper";
+import {
+  FAB,
+  ActivityIndicator,
+  Portal,
+  Modal,
+  Text,
+  Button, // 👍 เพิ่มปุ่ม
+} from "react-native-paper";
 import Header from "../../components/Header";
 
 import { styles } from "../../styles/ui";
@@ -38,9 +45,17 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [tasks, setTasks] = useState<TaskWithMeta[]>([]);
 
+  // Loading states
+  const [isLoading, setIsLoading] = useState<boolean>(false); // โหลดรายการ
+  const [isSaving, setIsSaving] = useState<boolean>(false); // กำลังบันทึก/แก้ไข/ลบ
+
   // สำหรับ create/edit
   const [openCreate, setOpenCreate] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithMeta | null>(null);
+
+  // ======= ยืนยันการลบ =======
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deletingTask, setDeletingTask] = useState<TaskWithMeta | null>(null);
 
   useEffect(() => {
     getData();
@@ -48,6 +63,7 @@ export default function Dashboard() {
 
   const getData = async () => {
     try {
+      setIsLoading(true);
       const params: { from: string; status?: string; title?: string } = {
         from: formatAPI(selectedDate),
       };
@@ -62,11 +78,14 @@ export default function Dashboard() {
       setTasks(Array.isArray(data?.items) ? data.items : []);
     } catch (err: any) {
       alert(err?.message ?? "getData: เกิดข้อผิดพลาด");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const saveData = async (data: any, model: string) => {
     try {
+      setIsSaving(true);
       if (model === "New") {
         await tasksSaveService(data);
       } else if (model === "Edit") {
@@ -75,8 +94,9 @@ export default function Dashboard() {
         await tasksDeleteService(data.id);
       }
     } catch (err) {
-      alert("saveData : เกิดข้อมพิดพลาด");
+      alert("saveData : เกิดข้อผิดพลาด");
     } finally {
+      setIsSaving(false);
       getData();
     }
   };
@@ -98,6 +118,24 @@ export default function Dashboard() {
   const closeModal = () => {
     setOpenCreate(false);
     setEditingTask(null);
+  };
+
+  // ======= ฟังก์ชันลบแบบมียืนยัน =======
+  const requestDelete = (tk: TaskWithMeta) => {
+    setDeletingTask(tk);
+    setConfirmOpen(true);
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setDeletingTask(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingTask) return;
+    setConfirmOpen(false);
+    await saveData(deletingTask, "Delete");
+    setDeletingTask(null);
   };
 
   return (
@@ -136,7 +174,8 @@ export default function Dashboard() {
                 console.log("open detail:", tk.id);
               }}
               onEdit={(tk) => openEditMode(tk as TaskWithMeta)}
-              onDelete={(tk) => saveData(tk, "Delete")}
+              // ❗️เปลี่ยนจากลบทันที → เปิดป๊อปอัปยืนยัน
+              onDelete={(tk) => requestDelete(tk as TaskWithMeta)}
               onChangeStatus={(tk, next) =>
                 setTasks((prev) =>
                   prev.map((x) =>
@@ -148,7 +187,7 @@ export default function Dashboard() {
               }
             />
           ))}
-          {filtered.length === 0 && <TaskEmptyCard />}
+          {filtered.length === 0 && !isLoading && <TaskEmptyCard />}
         </View>
       </ScrollView>
 
@@ -159,9 +198,10 @@ export default function Dashboard() {
         size="medium"
         color="white"
         customSize={56}
+        disabled={isLoading || isSaving} // ปิดตอนกำลังโหลด/บันทึก
       />
 
-      {/* ใส่ key เพื่อ remount เมื่อเปลี่ยนโหมด/งาน */}
+      {/* โมดัลสร้าง/แก้ไข */}
       <CreateTaskModal
         key={editingTask?.id || "new"}
         open={openCreate}
@@ -175,6 +215,108 @@ export default function Dashboard() {
           closeModal();
         }}
       />
+
+      {/* Global Loading Overlay */}
+      <Portal>
+        <Modal
+          visible={isLoading || isSaving}
+          onDismiss={() => {}}
+          contentContainerStyle={{
+            backgroundColor: "rgba(0,0,0,0.4)",
+            padding: 0,
+            margin: 0,
+          }}
+          dismissable={false}
+        >
+          <View
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              gap: 12,
+            }}
+          >
+            <ActivityIndicator animating size="large" />
+            <Text style={{ color: "white" }}>
+              {isSaving ? "กำลังบันทึก..." : "กำลังโหลด..."}
+            </Text>
+          </View>
+        </Modal>
+      </Portal>
+
+      {/* ======= ป๊อปอัปยืนยันการลบ (ตาม UI) ======= */}
+      <Portal>
+        <Modal
+          visible={confirmOpen}
+          onDismiss={cancelDelete}
+          contentContainerStyle={{
+            marginHorizontal: 24,
+            backgroundColor: "white",
+            borderRadius: 16,
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+          }}
+        >
+          <View style={{ alignItems: "center", gap: 10 }}>
+            <Text
+              style={{
+                fontWeight: "800",
+                fontSize: 18,
+                marginBottom: 2,
+                color: "#111827",
+              }}
+            >
+              ยืนยันการลบ
+            </Text>
+
+            <Text
+              style={{
+                textAlign: "center",
+                color: "#374151",
+                marginBottom: 12,
+                lineHeight: 20,
+              }}
+            >
+              {`คุณต้องการลบงาน “${deletingTask?.title ?? ""}” ใช่หรือไม่?`}
+            </Text>
+
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 12,
+                width: "100%",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Button
+                mode="outlined"
+                onPress={cancelDelete}
+                style={{
+                  flex: 1,
+                  borderRadius: 16,
+                  borderColor: "#E5E7EB",
+                  backgroundColor: "#F3F4F6",
+                }}
+                textColor="#111827"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                mode="contained"
+                onPress={confirmDelete}
+                style={{
+                  flex: 1,
+                  borderRadius: 16,
+                  backgroundColor: "#EF4444", // แดงตาม UI
+                }}
+              >
+                ตกลง
+              </Button>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
     </>
   );
 }

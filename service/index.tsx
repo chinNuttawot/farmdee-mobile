@@ -1,3 +1,7 @@
+import { expensesDeleteService } from "./expensesDeleteService/lindex";
+import { expensesSaveService } from "./expensesSaveService/lindex";
+import { expensesService } from "./expensesService/lindex";
+import { expensesUpdateService } from "./expensesUpdateService/lindex";
 import { loginService } from "./loginService/lindex";
 import { Profile } from "./profileService/lindex";
 import { tasksDeleteService } from "./tasksDeleteService/lindex";
@@ -14,4 +18,8 @@ export {
   tasksSaveService,
   tasksUpdateService,
   tasksDeleteService,
+  expensesService,
+  expensesUpdateService,
+  expensesSaveService,
+  expensesDeleteService,
 };

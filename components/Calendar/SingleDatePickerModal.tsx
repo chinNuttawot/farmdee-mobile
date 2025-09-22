@@ -10,29 +10,34 @@ import {
   Button,
 } from "react-native-paper";
 import { styles } from "../../styles/ui";
-import { MONTH_NAMES } from "../../lib/constants";
 import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
+import { TH_MONTHS, TH_WEEKDAYS } from "./MiniCalendar";
 
 export default function SingleDatePickerModal({
   open,
   onClose,
   initialDate,
   onConfirm,
+  useBuddhistYear = true,
 }: {
   open: boolean;
   onClose: () => void;
   initialDate: Date;
   onConfirm: (d: Date) => void;
+  useBuddhistYear?: boolean;
 }) {
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth0, setViewMonth0] = useState(initialDate.getMonth());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
   const [selected, setSelected] = useState<Date>(startOfDay(initialDate));
+  const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
+
   useEffect(() => {
     setViewYear(initialDate.getFullYear());
     setViewMonth0(initialDate.getMonth());
     setSelected(startOfDay(initialDate));
   }, [open, initialDate]);
+
   const cells = useMemo(
     () => monthMatrix(viewYear, viewMonth0),
     [viewYear, viewMonth0]
@@ -75,9 +80,9 @@ export default function SingleDatePickerModal({
         <View style={[styles.calHeader, { borderBottomColor: "#E5E7EB" }]}>
           <IconButton icon="chevron-left" size={20} onPress={gotoPrev} />
           <View style={styles.calHeaderCenter}>
-            <Text
-              style={styles.calMonth}
-            >{`${MONTH_NAMES[viewMonth0]} ${viewYear}`}</Text>
+            <Text style={styles.calMonth}>
+              {`${TH_MONTHS[viewMonth0]} ${yDisplay}`}
+            </Text>
             <Chip
               compact
               onPress={() => setYearPickerOpen(true)}
@@ -90,8 +95,9 @@ export default function SingleDatePickerModal({
           <IconButton icon="chevron-right" size={20} onPress={gotoNext} />
         </View>
 
+        {/* ✅ ใช้ชื่อวันแบบไทยเหมือน MiniCalendar */}
         <View style={styles.calWeekRow}>
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+          {TH_WEEKDAYS.map((d) => (
             <Text key={d} style={styles.calWeekday}>
               {d}
             </Text>
@@ -150,6 +156,7 @@ export default function SingleDatePickerModal({
           </Button>
         </View>
 
+        {/* ✅ Year picker: แสดง label เป็น พ.ศ. ถ้าเลือกใช้ */}
         <Portal>
           <Modal
             visible={yearPickerOpen}
@@ -166,18 +173,21 @@ export default function SingleDatePickerModal({
               {Array.from(
                 { length: 41 },
                 (_, i) => new Date().getFullYear() - 20 + i
-              ).map((y) => (
-                <Button
-                  key={y}
-                  mode="text"
-                  onPress={() => {
-                    setViewYear(y);
-                    setYearPickerOpen(false);
-                  }}
-                >
-                  {y}
-                </Button>
-              ))}
+              ).map((yCE) => {
+                const label = useBuddhistYear ? yCE + 543 : yCE;
+                return (
+                  <Button
+                    key={yCE}
+                    mode="text"
+                    onPress={() => {
+                      setViewYear(yCE); // เก็บเป็น ค.ศ.
+                      setYearPickerOpen(false);
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
             </View>
             <View
               style={{

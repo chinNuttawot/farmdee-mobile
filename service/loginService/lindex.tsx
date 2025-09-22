@@ -11,7 +11,7 @@ export const loginService = async (data: any) => {
     return dataLogin.data;
   } catch (error: any) {
     if (error.response?.data?.message) {
-      alert("loginService : " + error.response.data.message);
+      alert("loginService : " + error.response.data.error);
     } else {
       alert("loginService : ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง");
     }

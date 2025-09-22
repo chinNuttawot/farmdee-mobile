@@ -1,26 +1,33 @@
 // components/expenses/AddExpenseDialog.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, View, ScrollView } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  View,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import {
   Button,
   Portal,
-  Modal, // ✅ ใช้ Modal แทน Dialog
+  Modal,
   TextInput,
   Chip,
   Text,
+  Card,
+  Icon,
 } from "react-native-paper";
 import { styles } from "@/styles/ui";
 import { Expense, ExpenseType, typeMeta } from "./typeMeta";
+import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
+import { formatAPI } from "@/lib/date";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  // โหมดเพิ่มใหม่
-  onAdd?: (exp: Omit<Expense, "id">) => void;
-  // โหมดแก้ไข
-  onSave?: (exp: Expense) => void;
-  // ค่าตั้งต้นเมื่อแก้ไข
-  initial?: Expense;
+  onAdd?: (exp: Omit<Expense, "id">) => void; // โหมดเพิ่มใหม่
+  onSave?: (exp: Expense) => void; // โหมดแก้ไข
+  initial?: Expense; // ค่าตั้งต้นเมื่อแก้ไข
 };
 
 export default function AddExpenseDialog({
@@ -35,31 +42,47 @@ export default function AddExpenseDialog({
   const [type, setType] = useState<ExpenseType>("labor");
   const [jobNote, setJobNote] = useState("");
   const [qtyNote, setQtyNote] = useState("");
-  const [workDate, setWorkDate] = useState("");
+  const [workDate, setWorkDate] = useState(""); // YYYY-MM-DD
   const [total_amount, setAmount] = useState("");
+
+  // date picker state
+  const [dateOpen, setDateOpen] = useState(false);
 
   const isEdit = !!initial;
 
   // prefill เมื่อเปิด modal
   useEffect(() => {
     if (!visible) return;
+
     if (initial) {
       setTitle(initial.title ?? "");
       setType(initial.type ?? "labor");
-      setJobNote(initial.jobNote ?? "");
-      setQtyNote(initial.qtyNote ?? "");
-      setWorkDate(initial.workDate ?? "");
+      setJobNote(initial.job_note ?? "");
+      setQtyNote(initial.qty_note ?? "");
+
+      // รองรับทั้ง ISO และ YYYY-MM-DD
+      const rawDate = initial.work_date ?? "";
+      const normalized =
+        typeof rawDate === "string"
+          ? rawDate.includes("T")
+            ? rawDate.slice(0, 10)
+            : rawDate
+          : "";
+      setWorkDate(normalized);
+
       setAmount(
-        typeof initial.total_amount === "number" ? String(initial.total_amount) : ""
+        typeof initial.amount === "number" ? String(initial.amount) : ""
       );
     } else {
       setTitle("");
       setType("labor");
       setJobNote("");
       setQtyNote("");
-      setWorkDate("");
+      setWorkDate(""); // ให้ผู้ใช้เลือกจากปฏิทิน
       setAmount("");
     }
+
+    setDateOpen(false);
   }, [visible, initial]);
 
   const toNum = (s: string) => {
@@ -80,25 +103,37 @@ export default function AddExpenseDialog({
       const updated: Expense = {
         id: initial.id,
         title: title.trim() || typeMeta[type].label,
-        total_amount: amt,
+        amount: amt,
         type,
         jobNote: jobNote.trim() || undefined,
         qtyNote: qtyNote.trim() || undefined,
-        workDate: workDate.trim() || undefined,
+        workDate: workDate.trim() || undefined, // YYYY-MM-DD
       };
       onSave?.(updated);
     } else {
       const payload: Omit<Expense, "id"> = {
         title: title.trim() || typeMeta[type].label,
-        total_amount: amt,
+        amount: amt,
         type,
         jobNote: jobNote.trim() || undefined,
         qtyNote: qtyNote.trim() || undefined,
-        workDate: workDate.trim() || undefined,
+        workDate: workDate.trim() || undefined, // YYYY-MM-DD
       };
       onAdd?.(payload);
     }
     onClose();
+  };
+
+  // สร้างค่า initial date สำหรับปฏิทิน
+  const initialDateForPicker = () => {
+    try {
+      if (workDate) {
+        // สร้าง Date จาก YYYY-MM-DD แบบปลอดภัย (หลีกเลี่ยง timezone เพี้ยน)
+        const [y, m, d] = workDate.split("-").map((x) => Number(x));
+        if (y && m && d) return new Date(y, m - 1, d);
+      }
+    } catch {}
+    return new Date(); // ไม่มีก็วันนี้
   };
 
   return (
@@ -130,35 +165,33 @@ export default function AddExpenseDialog({
 
             <Text style={styles.fieldLabelV2}>ประเภท</Text>
             <View style={styles.segmentWrapV2}>
-              {(["labor", "fuel", "material", "other"] as ExpenseType[]).map(
-                (t) => {
-                  const selected = type === t;
-                  return (
-                    <Chip
-                      key={t}
-                      compact
-                      selected={selected}
-                      onPress={() => setType(t)}
-                      style={[
-                        styles.segmentChipV2,
-                        selected && {
-                          backgroundColor: typeMeta[t].color + "1A",
-                          borderColor: typeMeta[t].color + "55",
-                        },
-                      ]}
-                      textStyle={[
-                        styles.segmentTextV2,
-                        selected && {
-                          color: typeMeta[t].color,
-                          fontWeight: "700",
-                        },
-                      ]}
-                    >
-                      {typeMeta[t].label}
-                    </Chip>
-                  );
-                }
-              )}
+              {(["labor", "fuel", "material"] as ExpenseType[]).map((t) => {
+                const selected = type === t;
+                return (
+                  <Chip
+                    key={t}
+                    compact
+                    selected={selected}
+                    onPress={() => setType(t)}
+                    style={[
+                      styles.segmentChipV2,
+                      selected && {
+                        backgroundColor: typeMeta[t].color + "1A",
+                        borderColor: typeMeta[t].color + "55",
+                      },
+                    ]}
+                    textStyle={[
+                      styles.segmentTextV2,
+                      selected && {
+                        color: typeMeta[t].color,
+                        fontWeight: "700",
+                      },
+                    ]}
+                  >
+                    {typeMeta[t].label}
+                  </Chip>
+                );
+              })}
             </View>
 
             <Text style={styles.fieldLabelV2}>รายละเอียด</Text>
@@ -184,15 +217,32 @@ export default function AddExpenseDialog({
             />
 
             <Text style={styles.fieldLabelV2}>วันที่ทำงาน</Text>
-            <TextInput
+            <Card
+              onPress={() => setDateOpen(true)}
               mode="outlined"
-              value={workDate}
-              onChangeText={setWorkDate}
-              placeholder="YYYY-MM-DD"
-              style={styles.inputOutlined}
-              left={<TextInput.Icon icon="calendar" />}
-              dense
-            />
+              style={{ borderRadius: 12, marginBottom: 12 }}
+            >
+              <Card.Content
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 12,
+                  gap: 8,
+                }}
+              >
+                <Icon source="calendar" size={18} />
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: workDate?.trim() ? "#111827" : "#9CA3AF", // ถ้ายังไม่เลือก -> สีจาง
+                    fontSize: 16,
+                    fontWeight: workDate?.trim() ? "600" : "400",
+                  }}
+                >
+                  {workDate?.trim() ? workDate : "YYYY-MM-DD"}
+                </Text>
+              </Card.Content>
+            </Card>
 
             <Text style={styles.fieldLabelV2}>จำนวนเงิน</Text>
             <TextInput
@@ -224,6 +274,17 @@ export default function AddExpenseDialog({
             </Button>
           </View>
         </KeyboardAvoidingView>
+
+        {/* ✅ Date Picker (เหมือน code 1) */}
+        <SingleDatePickerModal
+          open={dateOpen}
+          onClose={() => setDateOpen(false)}
+          initialDate={initialDateForPicker()}
+          onConfirm={(d) => {
+            setWorkDate(formatAPI(d)); // -> YYYY-MM-DD
+            setDateOpen(false);
+          }}
+        />
       </Modal>
     </Portal>
   );

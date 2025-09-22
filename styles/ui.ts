@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
     emptyCard: { borderRadius: 16, paddingVertical: 8 },
 
     createModal: { backgroundColor: "#F7F7FB", marginHorizontal: 16, padding: 16, borderRadius: 16 },
-    input: { marginBottom: 12, borderRadius: 12 },
+    input: { marginBottom: 12, borderRadius: 12, fontSize: 14 },
     sectionLabel: { marginBottom: 6, fontWeight: "700", color: "#5A5F67" },
     row2: { flexDirection: "row", gap: 12, marginBottom: 12 },
     col: { flex: 1 },
@@ -279,6 +279,7 @@ export const styles = StyleSheet.create({
         flexWrap: "wrap",
         gap: 8,
         marginBottom: 12,
+        justifyContent: "center"
     },
     segmentChipV2: {
         borderWidth: 1,

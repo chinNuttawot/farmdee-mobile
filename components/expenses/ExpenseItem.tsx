@@ -33,22 +33,22 @@ export default function ExpenseItem({
         )}
         right={() => (
           <View style={{ alignItems: "flex-end", marginRight: 6 }}>
-            <Text style={{ fontWeight: "800" }}>฿{fmt(item.total_amount)}</Text>
+            <Text style={{ fontWeight: "800" }}>฿{fmt(item.amount)}</Text>
             <TypeChip t={item.type} />
           </View>
         )}
       />
       <Card.Content style={{ gap: 6 }}>
-        {(item.jobNote || item.workDate) && (
+        {(item.job_note || item.work_date) && (
           <Text style={{ opacity: 0.7 }} numberOfLines={2}>
-            {item.jobNote ? `งาน: ${item.jobNote}` : ""}
-            {item.jobNote && item.workDate ? " • " : ""}
-            {item.workDate ? `วันที่: ${item.workDate}` : ""}
+            {item.job_note ? `งาน: ${item.job_note}` : ""}
+            {item.job_note && item.work_date ? " • " : ""}
+            {item.work_date ? `วันที่: ${item.work_date}` : ""}
           </Text>
         )}
-        {item.qtyNote && (
+        {item.qty_note && (
           <Text style={{ opacity: 0.7 }} numberOfLines={1}>
-            {item.qtyNote}
+            {item.qty_note}
           </Text>
         )}
 

@@ -16,7 +16,7 @@ export default function SummaryCard({
   totalLabor: number;
   totalMaterial: number;
   totalFuel: number;
-  fmt: (n: number) => string;
+  fmt: (n?: number | string) => string;
 }) {
   return (
     <Card style={styles.summaryCard} elevation={0}>
