@@ -1,6 +1,6 @@
 // app/(tabs)/reports.tsx
-import React, { useMemo, useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import {
   Button,
   Card,
@@ -10,72 +10,141 @@ import {
   useTheme,
   Snackbar,
 } from "react-native-paper";
-import Header from "../../components/Header";
-import { File, Directory, Paths } from "expo-file-system";
+import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import * as XLSX from "xlsx";
 import * as Print from "expo-print";
-import { router } from "expo-router";
+import { File, Directory, Paths } from "expo-file-system";
+import { reportsService } from "@/service";
 
-// --- mock data (แทน API) ---
-const SAMPLE = [
-  { เดือน: "ส.ค. 2568", รายได้: 120000, ค่าใช้จ่าย: 45000 },
-  { เดือน: "ก.ย. 2568", รายได้: 98000, ค่าใช้จ่าย: 38000 },
-  { เดือน: "ต.ค. 2568", รายได้: 105000, ค่าใช้จ่าย: 52000 },
-  { เดือน: "พ.ย. 2568", รายได้: 112000, ค่าใช้จ่าย: 47000 },
+/** ===== Types ===== */
+type Range = "3m" | "6m" | "12m";
+type ApiRow = { month: string; income: number; expense: number };
+type ApiRes = {
+  ok: boolean;
+  message: string;
+  data: {
+    range: Range;
+    summary: { totalIncome: number; totalExpense: number; profit: number };
+    rows: ApiRow[];
+  };
+};
+
+/** ===== Helpers ===== */
+const TH_MONTHS = [
+  "ม.ค.",
+  "ก.พ.",
+  "มี.ค.",
+  "เม.ย.",
+  "พ.ค.",
+  "มิ.ย.",
+  "ก.ค.",
+  "ส.ค.",
+  "ก.ย.",
+  "ต.ค.",
+  "พ.ย.",
+  "ธ.ค.",
 ];
+
+const fmt = (n: number) => n.toLocaleString();
+const fmtTH = (n: number) => n.toLocaleString("th-TH");
+const fmtTHB = (n: number) => `฿ ${fmt(n)}`;
+
+function monthToThaiLabel(yyyyMM: string) {
+  // input: "2025-09"
+  const [y, m] = yyyyMM.split("-").map((v) => parseInt(v, 10));
+  const be = y + 543;
+  const mo = TH_MONTHS[(m || 1) - 1] ?? "";
+  return `${mo} ${be}`;
+}
 
 export default function Reports() {
   const theme = useTheme();
-  const [range, setRange] = useState<"3m" | "6m" | "12m">("3m");
+  const [range, setRange] = useState<Range>("3m");
+  const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
     visible: false,
     msg: "",
   });
 
-  // เลียนแบบการกรองช่วงเวลา
-  const rows = useMemo(() => {
-    if (range === "3m") return SAMPLE.slice(-3);
-    if (range === "6m") return SAMPLE.slice(-4); // mock ให้ยาวขึ้นได้ตามจริง
-    return SAMPLE;
+  // ===== state from API =====
+  const [rows, setRows] = useState<ApiRow[]>([]);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [profit, setProfit] = useState(0);
+
+  /** Fetch from API whenever range changes */
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const { data } = (await reportsService({ range })) as ApiRes;
+        if (ignore) return;
+
+        const rws = data?.rows ?? [];
+        setRows(rws);
+        setTotalIncome(data?.summary?.totalIncome ?? 0);
+        setTotalExpense(data?.summary?.totalExpense ?? 0);
+        setProfit(data?.summary?.profit ?? 0);
+      } catch (err: any) {
+        console.error("reportsService error:", err);
+        setSnack({
+          visible: true,
+          msg: "ดึงรายงานไม่สำเร็จ: " + (err?.message ?? "unknown"),
+        });
+        // clear UI to safe defaults
+        setRows([]);
+        setTotalIncome(0);
+        setTotalExpense(0);
+        setProfit(0);
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [range]);
 
-  const totalIncome = rows.reduce((s, r) => s + r.รายได้, 0);
-  const totalExpense = rows.reduce((s, r) => s + r.ค่าใช้จ่าย, 0);
-  const profit = totalIncome - totalExpense;
+  /** chart scales */
+  const { maxIncome, maxExpense } = useMemo(() => {
+    const incomes = rows.map((r) => r.income);
+    const expenses = rows.map((r) => r.expense);
+    return {
+      maxIncome: Math.max(1, ...incomes),
+      maxExpense: Math.max(1, ...expenses),
+    };
+  }, [rows]);
 
-  const maxIncome = Math.max(...rows.map((r) => r.รายได้), 1);
-  const maxExpense = Math.max(...rows.map((r) => r.ค่าใช้จ่าย), 1);
-
-  const fmt = (n: number) => n.toLocaleString();
-  const fmtTH = (n: number) => n.toLocaleString("th-TH");
-
-  // -------- Export Excel (FS API ใหม่ + sandbox) --------
+  /** ===== Export Excel (sandbox FS) ===== */
   const exportExcel = async () => {
     try {
-      // 1) workbook -> ArrayBuffer -> Uint8Array
-      const ws = XLSX.utils.json_to_sheet(rows);
+      // Prepare display rows for Excel
+      const excelRows = rows.map((r) => ({
+        เดือน: monthToThaiLabel(r.month),
+        รายได้: r.income,
+        ค่าใช้จ่าย: r.expense,
+      }));
+      const ws = XLSX.utils.json_to_sheet(excelRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "รายงาน");
       const ab = XLSX.write(wb, { type: "array", bookType: "xlsx" });
       const bytes = new Uint8Array(ab);
 
-      // 2) เขียนไว้ในโฟลเดอร์ sandbox ของแอป (ไม่ต้องขอ permission)
       const outDir = new Directory(Paths.cache, "exports");
       if (!outDir.exists) outDir.create();
-
-      const file = new File(outDir, "report.xlsx");
+      const file = new File(outDir, `report_${range}.xlsx`);
       if (file.exists) file.delete();
       file.create();
       file.write(bytes);
 
-      // 3) แชร์ไฟล์
       const canShare = await Sharing.isAvailableAsync().catch(() => false);
       if (canShare) {
         await Sharing.shareAsync(file.uri, {
           mimeType:
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          dialogTitle: "Export รายงาน",
+          dialogTitle: "Export รายงาน (Excel)",
           UTI: "com.microsoft.excel.xlsx",
         });
       } else {
@@ -93,19 +162,24 @@ export default function Reports() {
     }
   };
 
-  // -------- Export PDF (UTF-8 ภาษาไทยผ่านแน่นอน ด้วย expo-print) --------
+  /** ===== Export PDF (ภาษาไทยด้วย expo-print) ===== */
   const exportPDF = async () => {
     try {
       const tableRows = rows
         .map(
           (r) => `
           <tr>
-            <td>${r.เดือน}</td>
-            <td style="text-align:right">฿ ${fmtTH(r.รายได้)}</td>
-            <td style="text-align:right">฿ ${fmtTH(r.ค่าใช้จ่าย)}</td>
+            <td>${monthToThaiLabel(r.month)}</td>
+            <td style="text-align:right">฿ ${fmtTH(r.income)}</td>
+            <td style="text-align:right">฿ ${fmtTH(r.expense)}</td>
           </tr>`
         )
         .join("");
+
+      const startLabel =
+        rows.length > 0 ? monthToThaiLabel(rows[0].month) : "-";
+      const endLabel =
+        rows.length > 0 ? monthToThaiLabel(rows[rows.length - 1].month) : "-";
 
       const html = `
       <!doctype html>
@@ -131,9 +205,7 @@ export default function Reports() {
         </head>
         <body>
           <h1>รายงานผลประกอบการ</h1>
-          <div class="muted">ช่วงข้อมูล: ${rows[0]?.เดือน} – ${
-        rows[rows.length - 1]?.เดือน
-      }</div>
+          <div class="muted">ช่วงข้อมูล: ${startLabel} – ${endLabel}</div>
 
           <div class="kpi" style="margin-top:12px;">
             <div class="card" style="flex:1">
@@ -164,13 +236,10 @@ export default function Reports() {
                 <th style="text-align:right;">ค่าใช้จ่าย</th>
               </tr>
             </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
+            <tbody>${tableRows}</tbody>
           </table>
         </body>
       </html>`;
-
       const { uri } = await Print.printToFileAsync({ html });
       const canShare = await Sharing.isAvailableAsync().catch(() => false);
       if (canShare) {
@@ -217,7 +286,7 @@ export default function Reports() {
                 รายได้รวม
               </Text>
               <Text variant="headlineMedium" style={styles.bold}>
-                ฿ {fmt(totalIncome)}
+                {fmtTHB(totalIncome)}
               </Text>
             </Card.Content>
           </Card>
@@ -231,7 +300,7 @@ export default function Reports() {
                 variant="headlineMedium"
                 style={[styles.bold, { color: "#E53935" }]}
               >
-                ฿ {fmt(totalExpense)}
+                {fmtTHB(totalExpense)}
               </Text>
             </Card.Content>
           </Card>
@@ -249,10 +318,17 @@ export default function Reports() {
                 { color: profit >= 0 ? "#2E7D32" : "#C62828" },
               ]}
             >
-              ฿ {fmt(profit)}
+              {fmtTHB(profit)}
             </Text>
           </Card.Content>
         </Card>
+
+        {/* Loading state */}
+        {loading ? (
+          <View style={{ paddingVertical: 24, alignItems: "center" }}>
+            <ActivityIndicator />
+          </View>
+        ) : null}
 
         {/* Mini Bar Chart */}
         <Card style={{ borderRadius: 16, marginTop: 16 }} elevation={2}>
@@ -263,7 +339,9 @@ export default function Reports() {
             <View style={{ height: 12 }} />
             {rows.map((r, i) => (
               <View key={i} style={{ marginBottom: 12 }}>
-                <Text style={{ marginBottom: 6 }}>{r.เดือน}</Text>
+                <Text style={{ marginBottom: 6 }}>
+                  {monthToThaiLabel(r.month)}
+                </Text>
 
                 {/* income */}
                 <View style={styles.barRow}>
@@ -272,13 +350,13 @@ export default function Reports() {
                       style={[
                         styles.barFill,
                         {
-                          width: `${(r.รายได้ / maxIncome) * 100}%`,
+                          width: `${(r.income / maxIncome) * 100}%`,
                           backgroundColor: theme.colors.primary,
                         },
                       ]}
                     />
                   </View>
-                  <Text style={styles.barLabel}>฿ {fmt(r.รายได้)}</Text>
+                  <Text style={styles.barLabel}>{fmtTHB(r.income)}</Text>
                 </View>
 
                 {/* expense */}
@@ -288,16 +366,19 @@ export default function Reports() {
                       style={[
                         styles.barFill,
                         {
-                          width: `${(r.ค่าใช้จ่าย / maxExpense) * 100}%`,
+                          width: `${(r.expense / maxExpense) * 100}%`,
                           backgroundColor: "#E53935",
                         },
                       ]}
                     />
                   </View>
-                  <Text style={styles.barLabel}>฿ {fmt(r.ค่าใช้จ่าย)}</Text>
+                  <Text style={styles.barLabel}>{fmtTHB(r.expense)}</Text>
                 </View>
               </View>
             ))}
+            {rows.length === 0 && !loading ? (
+              <Text style={{ opacity: 0.6 }}>ไม่พบข้อมูลช่วงนี้</Text>
+            ) : null}
           </Card.Content>
         </Card>
 
@@ -316,15 +397,16 @@ export default function Reports() {
 
               {rows.map((r, idx) => (
                 <DataTable.Row key={idx}>
-                  <DataTable.Cell>{r.เดือน}</DataTable.Cell>
-                  <DataTable.Cell numeric>฿ {fmt(r.รายได้)}</DataTable.Cell>
-                  <DataTable.Cell numeric>฿ {fmt(r.ค่าใช้จ่าย)}</DataTable.Cell>
+                  <DataTable.Cell>{monthToThaiLabel(r.month)}</DataTable.Cell>
+                  <DataTable.Cell numeric>{fmtTHB(r.income)}</DataTable.Cell>
+                  <DataTable.Cell numeric>{fmtTHB(r.expense)}</DataTable.Cell>
                 </DataTable.Row>
               ))}
             </DataTable>
           </Card.Content>
         </Card>
 
+        {/* Bottom buttons */}
         <View
           style={{
             marginTop: 16,
@@ -336,12 +418,7 @@ export default function Reports() {
         >
           <Button
             mode="contained"
-            onPress={() => {
-              router.push({
-                pathname: "/reportsMonthlyScreen",
-                params: {},
-              });
-            }}
+            onPress={() => router.push("/reportsMonthlyScreen")}
             style={{
               backgroundColor: "#E0E0E0",
               borderRadius: 8,
@@ -364,8 +441,17 @@ export default function Reports() {
             }}
             labelStyle={{ color: "#fff", fontWeight: "700" }}
           >
-            Export
+            Export PDF
           </Button>
+
+          {/* <Button
+            mode="outlined"
+            onPress={exportExcel}
+            style={{ borderRadius: 8, paddingHorizontal: 20 }}
+            labelStyle={{ fontWeight: "700" }}
+          >
+            Export Excel
+          </Button> */}
         </View>
       </ScrollView>
 
@@ -385,7 +471,7 @@ const styles = StyleSheet.create({
   kpiRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
   kpiCard: { flex: 1, borderRadius: 16 },
 
-  // --- chart styles (แก้ใหม่ให้เลขไม่ตก) ---
+  // --- chart styles (เว้นพื้นที่ตัวเลขไม่ให้ตก)
   barRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   barTrack: {
     flex: 1,

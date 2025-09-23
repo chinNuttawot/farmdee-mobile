@@ -9,6 +9,8 @@ import { listPayrollsService } from "./payrollsService/listPayrollsService/linde
 import { previewService } from "./payrollsService/previewService/lindex";
 import { statusPayrollService } from "./payrollsService/statusPayrollService/lindex";
 import { Profile } from "./profileService/lindex";
+import { byMonthlyService } from "./summaryService/byMonthlyService/lindex";
+import { reportsService } from "./summaryService/reportsService/lindex";
 import { tasksDeleteService } from "./tasksDeleteService/lindex";
 import { tasksSaveService } from "./tasksSaveService/lindex";
 import { tasksService } from "./tasksService/lindex";
@@ -34,4 +36,6 @@ export {
   listPayrollsService,
   statusPayrollService,
   deletePayrollByIDService,
+  byMonthlyService,
+  reportsService,
 };

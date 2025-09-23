@@ -22,6 +22,20 @@ export default function Clients() {
   const menuItems = useMemo(
     () => [
       {
+        key: "stats",
+        title: "สถิติ & รายงาน",
+        onPress: () => router.push("/reports"),
+      },
+      {
+        key: "salary-setting",
+        title: "ตั้งค่าเงินเดือนพนักงาน",
+        onPress: () =>
+          router.push({
+            pathname: "/employee",
+            params: { menuName: "configSalary" },
+          }),
+      },
+      {
         key: "payroll",
         title: "จ่ายเงินเดือนพนักงาน",
         onPress: () =>
@@ -38,20 +52,6 @@ export default function Clients() {
             pathname: "/employee",
             params: { menuName: "evaluateEmployee" },
           }),
-      },
-      {
-        key: "salary-setting",
-        title: "ตั้งค่าเงินเดือนพนักงาน",
-        onPress: () =>
-          router.push({
-            pathname: "/employee",
-            params: { menuName: "configSalary" },
-          }),
-      },
-      {
-        key: "stats",
-        title: "สถิติ & รายงาน",
-        onPress: () => router.push("/reports"),
       },
       {
         key: "announcement",

@@ -8,9 +8,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AuthProvider from "../context/AuthContext";
 
 // ---- THEME (Agriculture / Farm) ----
-const PRIMARY = "#3E9B4F"; // เขียวหลัก
-const BG = "#F6FBF6"; // เขียวจางเป็นพื้นหลัง
-const OUTLINE = "#C9DEC9"; // เส้นขอบโทนเขียว
+export const PRIMARY = "#3E9B4F"; // เขียวหลัก
+export const BG = "#F6FBF6"; // เขียวจางเป็นพื้นหลัง
+export const OUTLINE = "#C9DEC9"; // เส้นขอบโทนเขียว
 
 const farmTheme = {
   ...MD3LightTheme,
