@@ -1,17 +1,12 @@
 // components/Calendar/SingleDatePickerModal.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { View, TouchableOpacity } from "react-native";
-import {
-  Text,
-  Portal,
-  Modal,
-  Chip,
-  IconButton,
-  Button,
-} from "react-native-paper";
-import { styles } from "../../styles/ui";
-import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
+import { View, TouchableOpacity, Platform, StyleSheet } from "react-native";
+import { Text, Portal, Modal, IconButton, Button } from "react-native-paper";
+import { monthMatrix, isSameDay } from "../../lib/date";
 import { TH_MONTHS, TH_WEEKDAYS } from "./MiniCalendar";
+
+const toLocalNoon = (d: Date) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
 
 export default function SingleDatePickerModal({
   open,
@@ -28,16 +23,15 @@ export default function SingleDatePickerModal({
 }) {
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth0, setViewMonth0] = useState(initialDate.getMonth());
-  const [yearPickerOpen, setYearPickerOpen] = useState(false);
-  const [selected, setSelected] = useState<Date>(startOfDay(initialDate));
-  const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
+  const [selected, setSelected] = useState<Date>(toLocalNoon(initialDate));
 
   useEffect(() => {
     setViewYear(initialDate.getFullYear());
     setViewMonth0(initialDate.getMonth());
-    setSelected(startOfDay(initialDate));
+    setSelected(toLocalNoon(initialDate));
   }, [open, initialDate]);
 
+  const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
   const cells = useMemo(
     () => monthMatrix(viewYear, viewMonth0),
     [viewYear, viewMonth0]
@@ -55,12 +49,12 @@ export default function SingleDatePickerModal({
   };
 
   const handleCancel = () => {
-    setSelected(startOfDay(initialDate));
+    setSelected(toLocalNoon(initialDate));
     onClose();
   };
   const handleOk = () => {
-    onConfirm(selected);
-    setSelected(startOfDay(initialDate));
+    onConfirm(toLocalNoon(selected));
+    setSelected(toLocalNoon(initialDate));
   };
 
   return (
@@ -68,67 +62,50 @@ export default function SingleDatePickerModal({
       <Modal
         visible={open}
         onDismiss={handleCancel}
-        contentContainerStyle={styles.rangeModal}
+        contentContainerStyle={S.modal}
       >
-        <Text
-          variant="titleMedium"
-          style={{ fontWeight: "800", marginBottom: 8 }}
-        >
-          เลือกวันที่
-        </Text>
-
-        <View style={[styles.calHeader, { borderBottomColor: "#E5E7EB" }]}>
+        {/* Header */}
+        <View style={S.header}>
           <IconButton icon="chevron-left" size={20} onPress={gotoPrev} />
-          <View style={styles.calHeaderCenter}>
-            <Text style={styles.calMonth}>
-              {`${TH_MONTHS[viewMonth0]} ${yDisplay}`}
-            </Text>
-            <Chip
-              compact
-              onPress={() => setYearPickerOpen(true)}
-              style={styles.yearChip}
-              icon="calendar"
-            >
-              เลือกปี ▾
-            </Chip>
-          </View>
+          <Text
+            style={S.monthText}
+          >{`${TH_MONTHS[viewMonth0]} ${yDisplay}`}</Text>
           <IconButton icon="chevron-right" size={20} onPress={gotoNext} />
         </View>
 
-        {/* ✅ ใช้ชื่อวันแบบไทยเหมือน MiniCalendar */}
-        <View style={styles.calWeekRow}>
+        {/* Weekdays */}
+        <View style={S.row7}>
           {TH_WEEKDAYS.map((d) => (
-            <Text key={d} style={styles.calWeekday}>
+            <Text key={d} style={S.weekCell}>
               {d}
             </Text>
           ))}
         </View>
 
-        <View style={styles.calGrid}>
+        {/* Days */}
+        <View style={S.grid7}>
           {cells.map(({ date, isCurrentMonth }, idx) => {
-            const isSel = isSameDay(date, selected);
+            const cellNoon = toLocalNoon(date);
+            const isSel = isSameDay(cellNoon, selected);
             return (
               <TouchableOpacity
                 key={idx}
-                style={styles.calCell}
-                onPress={() => setSelected(startOfDay(date))}
-                activeOpacity={0.7}
+                style={S.dayCell}
+                onPress={() => setSelected(cellNoon)}
+                activeOpacity={0.75}
               >
                 <View
                   style={[
-                    styles.calPill,
-                    isSel && {
-                      backgroundColor: "#1E88E522",
-                      borderColor: "#1E88E5",
-                      borderWidth: 1,
-                    },
+                    S.circle,
+                    isSel && S.circleSelected,
+                    !isCurrentMonth && S.circleOutMonth,
                   ]}
                 >
                   <Text
                     style={[
-                      styles.calDayText,
-                      !isCurrentMonth && { color: "#B0B4BB" },
-                      isSel && { color: "#1E88E5", fontWeight: "800" },
+                      S.dayText,
+                      !isCurrentMonth && S.dayMuted,
+                      isSel && S.dayTextSelected,
                     ]}
                   >
                     {date.getDate()}
@@ -139,68 +116,99 @@ export default function SingleDatePickerModal({
           })}
         </View>
 
-        <View style={styles.footerRow}>
-          <Button
-            mode="outlined"
-            onPress={handleCancel}
-            style={styles.footerBtn}
-          >
+        {/* Footer */}
+        <View style={S.footerRow}>
+          <Button mode="outlined" onPress={handleCancel} style={S.footerBtn}>
             ยกเลิก
           </Button>
           <Button
             mode="contained"
             onPress={handleOk}
-            style={[styles.footerBtn, { backgroundColor: "#2E7D32" }]}
+            style={[S.footerBtn, S.okBtn]}
           >
             ตกลง
           </Button>
         </View>
-
-        {/* ✅ Year picker: แสดง label เป็น พ.ศ. ถ้าเลือกใช้ */}
-        <Portal>
-          <Modal
-            visible={yearPickerOpen}
-            onDismiss={() => setYearPickerOpen(false)}
-            contentContainerStyle={styles.yearModal}
-          >
-            <Text
-              variant="titleMedium"
-              style={{ marginBottom: 8, fontWeight: "700" }}
-            >
-              เลือกปี
-            </Text>
-            <View style={{ maxHeight: 300 }}>
-              {Array.from(
-                { length: 41 },
-                (_, i) => new Date().getFullYear() - 20 + i
-              ).map((yCE) => {
-                const label = useBuddhistYear ? yCE + 543 : yCE;
-                return (
-                  <Button
-                    key={yCE}
-                    mode="text"
-                    onPress={() => {
-                      setViewYear(yCE); // เก็บเป็น ค.ศ.
-                      setYearPickerOpen(false);
-                    }}
-                  >
-                    {label}
-                  </Button>
-                );
-              })}
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "flex-end",
-                marginTop: 8,
-              }}
-            >
-              <Button onPress={() => setYearPickerOpen(false)}>ปิด</Button>
-            </View>
-          </Modal>
-        </Portal>
       </Modal>
     </Portal>
   );
 }
+
+const GAP = 6;
+const COL_W = "14.2857%";
+
+const S = StyleSheet.create({
+  modal: {
+    alignSelf: "center",
+    width: "92%",
+    maxWidth: 520,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    padding: 14,
+    ...(Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+      },
+      android: { elevation: 6 },
+      default: {},
+    }) as object),
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  monthText: { fontSize: 18, fontWeight: "800" },
+
+  row7: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -(GAP / 2),
+    marginBottom: 4,
+  },
+  weekCell: {
+    width: COL_W,
+    textAlign: "center",
+    fontSize: 12,
+    opacity: 0.7,
+    fontWeight: "600",
+  },
+
+  grid7: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -(GAP / 2),
+  },
+  dayCell: {
+    width: COL_W,
+    paddingVertical: GAP / 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circleSelected: { borderWidth: 2, borderColor: "#2563EB" },
+  circleOutMonth: { opacity: 0.35 },
+
+  dayText: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  dayMuted: { color: "#9CA3AF" },
+  dayTextSelected: { color: "#2563EB", fontWeight: "800" },
+
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    gap: 12,
+  },
+  footerBtn: { flex: 1, borderRadius: 10 },
+  okBtn: { backgroundColor: "#2E7D32" },
+});

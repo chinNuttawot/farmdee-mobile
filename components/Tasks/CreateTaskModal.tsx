@@ -255,25 +255,36 @@ export default function CreateTaskModal({
             />
 
             <View style={styles.row2}>
-              <TextInput
+              <TouchableOpacity
+                style={{ flex: 1 }}
                 onPress={() => setPickerFor("start")}
-                mode="outlined"
-                label="วันที่เริ่ม"
-                value={form.start}
-                editable={false}
-                left={<TextInput.Icon icon="calendar" />}
-                style={[styles.input, styles.col]}
-              />
-
-              <TextInput
+                activeOpacity={0.7}
+              >
+                <TextInput
+                  onPress={() => setPickerFor("start")}
+                  mode="outlined"
+                  label="วันที่เริ่ม"
+                  value={form.start}
+                  editable={false}
+                  left={<TextInput.Icon icon="calendar" />}
+                  style={[styles.input, styles.col]}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1 }}
                 onPress={() => setPickerFor("end")}
-                mode="outlined"
-                label="วันที่สิ้นสุด"
-                value={form.end}
-                editable={false}
-                left={<TextInput.Icon icon="calendar" />}
-                style={[styles.input, styles.col]}
-              />
+                activeOpacity={0.7}
+              >
+                <TextInput
+                  onPress={() => setPickerFor("end")}
+                  mode="outlined"
+                  label="วันที่สิ้นสุด"
+                  value={form.end}
+                  editable={false}
+                  left={<TextInput.Icon icon="calendar" />}
+                  style={[styles.input, styles.col]}
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.row2}>
