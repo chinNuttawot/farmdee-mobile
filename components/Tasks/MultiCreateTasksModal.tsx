@@ -11,38 +11,60 @@ import {
   ActivityIndicator,
   useTheme,
 } from "react-native-paper";
-import {
-  fetchMilesBenefit,
-  MilesBenefitResponse,
-  MilesTier,
-} from "@/service/milesBenefitService";
+import { ruleService } from "@/service";
 
 type Props = {
   visible: boolean;
   onDismiss: () => void;
 };
 
+// ===== Types (คาดเค้าโครงข้อมูลที่ ruleService ส่งกลับ) =====
+type MilesTier = {
+  min: number;
+  max: number;
+  priceTHB: number;
+};
+type RuleResponse = {
+  title?: string;
+  oneWay?: MilesTier[];
+  roundTrip?: MilesTier[];
+  notes?: string[];
+};
+
 export default function MilesBenefitModal({ visible, onDismiss }: Props) {
   const theme = useTheme();
-  const [data, setData] = useState<MilesBenefitResponse | null>(null);
+  const [data, setData] = useState<RuleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const load = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const { data } = await ruleService();
+      setData(data as RuleResponse);
+    } catch (e: any) {
+      setErr(e?.message ?? "เกิดข้อผิดพลาดในการโหลดข้อมูล");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let ignore = false;
-    async function load() {
+    (async () => {
+      if (!visible) return;
       setLoading(true);
       setErr(null);
       try {
-        const res = await fetchMilesBenefit();
-        if (!ignore) setData(res);
+        const { data } = await ruleService();
+        if (!ignore) setData(data as RuleResponse);
       } catch (e: any) {
         if (!ignore) setErr(e?.message ?? "เกิดข้อผิดพลาดในการโหลดข้อมูล");
       } finally {
         if (!ignore) setLoading(false);
       }
-    }
-    if (visible) load();
+    })();
     return () => {
       ignore = true;
     };
@@ -52,7 +74,11 @@ export default function MilesBenefitModal({ visible, onDismiss }: Props) {
 
   return (
     <Portal>
-      <Modal visible={visible} contentContainerStyle={styles.container}>
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        contentContainerStyle={styles.container}
+      >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <Text style={styles.title}>{title}</Text>
           <View style={{ flex: 1 }}>
@@ -68,18 +94,7 @@ export default function MilesBenefitModal({ visible, onDismiss }: Props) {
                 <Text style={{ color: theme.colors.error, marginBottom: 8 }}>
                   {err}
                 </Text>
-                <Button
-                  mode="contained"
-                  onPress={() => {
-                    setData(null);
-                    setErr(null);
-                    setLoading(true);
-                    fetchMilesBenefit()
-                      .then(setData)
-                      .catch((e) => setErr(e?.message ?? "โหลดข้อมูลไม่ได้"))
-                      .finally(() => setLoading(false));
-                  }}
-                >
+                <Button mode="contained" onPress={load}>
                   ลองใหม่
                 </Button>
               </View>
@@ -94,7 +109,7 @@ export default function MilesBenefitModal({ visible, onDismiss }: Props) {
                   />
                   <Card.Content>
                     {(data.oneWay ?? []).filter(Boolean).map((t, idx) => (
-                      <MilesRow key={`ow-${idx}`} tier={t as MilesTier} />
+                      <MilesRow key={`ow-${idx}`} tier={t} />
                     ))}
                   </Card.Content>
                 </Card>
@@ -106,7 +121,7 @@ export default function MilesBenefitModal({ visible, onDismiss }: Props) {
                   />
                   <Card.Content>
                     {(data.roundTrip ?? []).filter(Boolean).map((t, idx) => (
-                      <MilesRow key={`rt-${idx}`} tier={t as MilesTier} />
+                      <MilesRow key={`rt-${idx}`} tier={t} />
                     ))}
                   </Card.Content>
                 </Card>
