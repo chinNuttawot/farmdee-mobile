@@ -1,7 +1,7 @@
 // app/(tabs)/clients.tsx
 import Header from "@/components/Header";
 import React, { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
   Avatar,
   Card,
@@ -10,24 +10,67 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { router } from "expo-router";
 import { useRouter } from "expo-router";
-import { Profile } from "@/service";
 import { StorageUtility } from "@/providers/storageUtility";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
+import { logoutService } from "@/service";
+
 export default function Clients() {
   const [user, setUser] = useState<any>({});
+  const [loggingOut, setLoggingOut] = useState(false);
   const theme = useTheme();
   const router = useRouter();
-  const menuItems = useMemo(() => [], []);
+
+  const menuItems = useMemo(
+    () => [
+      {
+        key: "evaluation",
+        title: "การประเมินงานของฉัน",
+        onPress: () => {},
+      },
+    ],
+    []
+  );
 
   useEffect(() => {
     getData();
   }, []);
 
   const getData = async () => {
-    const res = await StorageUtility.get(PROFILE_KEY);
-    setUser(JSON.parse(res));
+    try {
+      const res = await StorageUtility.get(PROFILE_KEY);
+      if (res) setUser(JSON.parse(res));
+    } catch (e) {
+      // เงียบไว้ ไม่ต้อง block หน้าจอ
+    }
+  };
+
+  const doLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      // ถ้า service ของคุณต้องการ body เปล่า ให้คง { } ได้
+      await logoutService({}); // หรือ await logoutService();
+    } catch (err: any) {
+      console.log("logout error:", err?.message);
+      // ไม่บล็อก: ต่อให้ API ล้มเหลวก็เคลียร์ข้อมูลในเครื่องต่อได้
+    } finally {
+      await StorageUtility.remove(PROFILE_KEY);
+      router.replace("/(auth)/login");
+      setLoggingOut(false);
+    }
+  };
+
+  const confirmLogout = () => {
+    if (loggingOut) return;
+    Alert.alert("ออกจากระบบ", "คุณต้องการออกจากระบบหรือไม่?", [
+      { text: "ยกเลิก", style: "cancel" },
+      {
+        text: "ออกจากระบบ",
+        style: "destructive",
+        onPress: doLogout,
+      },
+    ]);
   };
 
   const ProfileRender = (
@@ -45,7 +88,7 @@ export default function Clients() {
             style={{ color: theme.colors.onPrimary, fontWeight: "700" }}
             numberOfLines={1}
           >
-            {user.full_name}
+            {user?.full_name ?? "ผู้ใช้งาน"}
           </Text>
         </View>
       </View>
@@ -80,12 +123,16 @@ export default function Clients() {
 
           {/* ออกจากระบบ */}
           <List.Item
-            title="ออกจากระบบ"
-            onPress={async () => {
-              router.replace("/(auth)/login");
+            title={loggingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}
+            onPress={confirmLogout}
+            titleStyle={{
+              color: loggingOut
+                ? theme.colors.onSurfaceDisabled
+                : theme.colors.error,
+              fontWeight: "700",
             }}
-            titleStyle={{ color: theme.colors.error, fontWeight: "700" }}
             style={styles.item}
+            disabled={loggingOut}
           />
         </Card>
 

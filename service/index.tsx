@@ -9,6 +9,7 @@ import { expensesSaveService } from "./expensesSaveService/lindex";
 import { expensesService } from "./expensesService/lindex";
 import { expensesUpdateService } from "./expensesUpdateService/lindex";
 import { loginService } from "./loginService/lindex";
+import { logoutService } from "./logoutService/lindex";
 import { createPayrollService } from "./payrollsService/createPayrollService/lindex";
 import { deletePayrollByIDService } from "./payrollsService/deletePayrollByIDService/lindex";
 import { listPayrollsService } from "./payrollsService/listPayrollsService/lindex";
@@ -52,4 +53,5 @@ export {
   updateAnnouncementService,
   empAnnouncementsService,
   ruleService,
+  logoutService,
 };
