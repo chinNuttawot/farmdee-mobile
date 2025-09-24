@@ -197,14 +197,6 @@ function DetailRow({ d }: { d: PayrollDetail }) {
 
       <View style={s.detailRight}>
         {/* Meta ตามประเภท */}
-        {isPerRai && (
-          <>
-            <Text style={s.detailMeta}>ไร่: {num(d.area)}</Text>
-            <Text style={s.detailMeta}>
-              ค่า/ไร่: ฿{money(num(d.ratePerRai))}
-            </Text>
-          </>
-        )}
         {isDaily && (
           <Text style={s.detailMeta}>รายวัน: ฿{money(num(d.dailyRate))}</Text>
         )}
