@@ -39,6 +39,21 @@ export type TaskWithMeta = Task & {
   paid_amount?: number; // ค่าแรงแล้ว
 };
 
+type Assignee = {
+  dailyRate: string;
+  isDaily: boolean;
+  ratePerRai: string;
+  repairRate: string;
+  useDefault: boolean;
+  username: string;
+};
+
+type TaskPayload = {
+  id?: number;
+  assigneeConfigs?: Assignee[];
+  // ...ฟิลด์อื่นๆ ตามจริง
+};
+
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusType>("ทั้งหมด");
@@ -82,16 +97,54 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   };
+  const toMoney = (n: number) => n.toFixed(2);
 
-  const saveData = async (data: any, model: string) => {
+  const splitRatesPerAssignee = (task: TaskPayload): TaskPayload => {
+    const assignees = task.assigneeConfigs ?? [];
+    const len = assignees.length || 1; // กันหารศูนย์
+
+    // ถ้าไม่มี assignee ไม่ต้องเปลี่ยน payload
+    if (assignees.length === 0) return task;
+
+    const mapped = assignees.map((a) => {
+      const perRai = Number(a.ratePerRai) || 0;
+      const repair = Number(a.repairRate) || 0;
+
+      return {
+        ...a,
+        useDefault: false, // บังคับไม่ใช้ default
+        ratePerRai: toMoney(perRai / len),
+        repairRate: toMoney(repair / len),
+      };
+    });
+
+    return { ...task, assigneeConfigs: mapped };
+  };
+
+  const saveData = async (
+    data: TaskPayload,
+    model: "New" | "Edit" | "Delete"
+  ) => {
     try {
       setIsSaving(true);
-      if (model === "New") {
-        await tasksSaveService(data);
-      } else if (model === "Edit") {
-        await tasksUpdateService(data);
-      } else if (model === "Delete") {
-        await tasksDeleteService(data.id);
+      switch (model) {
+        case "New": {
+          const payload = splitRatesPerAssignee({ ...data });
+          await tasksSaveService(payload);
+          break;
+        }
+        case "Edit": {
+          const payload = splitRatesPerAssignee({ ...data });
+          await tasksUpdateService(payload);
+          break;
+        }
+        case "Delete": {
+          if (!data.id) throw new Error("Missing task id for delete");
+          await tasksDeleteService(data.id);
+          break;
+        }
+        default:
+          throw new Error(`Unknown model: ${model}`);
       }
     } catch (err) {
       alert("saveData : เกิดข้อผิดพลาด");

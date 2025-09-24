@@ -1,54 +1,142 @@
 // app/(tabs)/emp-announcement.tsx
-import React from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
-import { Appbar, Card, Text } from "react-native-paper";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, ScrollView, StyleSheet, RefreshControl } from "react-native";
+import {
+  Card,
+  Text,
+  ActivityIndicator,
+  Button,
+  Snackbar,
+} from "react-native-paper";
 import Header from "../../components/Header";
+import { empAnnouncementsService } from "@/service";
+
+type Announcement = {
+  id: string;
+  content: string;
+  is_active: boolean;
+  sort_order: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function EmpAnnouncement() {
-  const rules = [
-    "ทำประกันชีวิตปิ่นเกล้าของ ปิดบ่ามส่งให้",
-    "ลาออกจากงานต้องแจ้งให้ทราบล่วงหน้า 1 เดือน",
-    "งานบางปีไร่ละ 60/คัน ใครมีคนมาเพิ่มแบ่งกันเอง",
-    "การเบิกเงินล่วงหน้าสามารถเบิกได้ 80% ของงานที่ทำได้",
-    "งานซ่อมใหญ่คิดเงินให้แยกแบ่งมาจ่ายให้ตามความยากง่ายของงาน",
-    "การหยุดงาน/ขาด/ลา ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน",
-    "พูดจา ยุยง ส่อเสียด หรือทำให้แตกแยกเป็นหมู่คณะ ตัดการใช้โบนัสครึ่งปี",
-    "การเช็ครถ/ซ่อมรถต้องช่วยกัน เอาแรงกัน",
-  ];
+  const [items, setItems] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+
+      // เรียก API: active = true
+      const { data } = await empAnnouncementsService({ active: true });
+
+      // ป้องกัน null/undefined และ sort ตาม sort_order (น้อยไปมาก)
+      const list: Announcement[] = (data?.items ?? [])
+        .slice()
+        .sort(
+          (a: Announcement, b: Announcement) =>
+            (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        );
+      setItems(list);
+    } catch (e: any) {
+      setError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const countLabel = useMemo(() => {
+    const n = items.length;
+    if (n <= 0) return "ยังไม่มีประกาศ";
+    return `รวม ${n} ข้อ`;
+  }, [items.length]);
 
   return (
     <>
-      <Header title="ระเบียบการอยู่ร่วมกัน" backgroundColor="#2E7D32" color="white" />
+      <Header
+        title="ระเบียบการอยู่ร่วมกัน"
+        backgroundColor="#2E7D32"
+        color="white"
+      />
 
-      {/* เนื้อหา */}
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-        showsVerticalScrollIndicator={false}
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator animating />
+          <Text style={{ marginTop: 8 }}>กำลังโหลด...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchData(true)}
+            />
+          }
+        >
+          <Card style={s.card} mode="elevated">
+            <Card.Content>
+              <View style={s.headerRow}>
+                <Text style={s.sectionTitle}>ข้อปฏิบัติ / ประกาศ</Text>
+                <Text style={s.countText}>{countLabel}</Text>
+              </View>
+
+              {items.length === 0 ? (
+                <View style={s.emptyWrap}>
+                  <Text style={{ opacity: 0.7 }}>ยังไม่มีประกาศที่ใช้งาน</Text>
+                  <Button
+                    mode="text"
+                    onPress={() => fetchData()}
+                    style={{ marginTop: 6 }}
+                  >
+                    โหลดอีกครั้ง
+                  </Button>
+                </View>
+              ) : (
+                items.map((it, i) => (
+                  <Text key={it.id ?? i} style={s.rule}>
+                    {i + 1}. {it.content}
+                  </Text>
+                ))
+              )}
+            </Card.Content>
+          </Card>
+        </ScrollView>
+      )}
+
+      <Snackbar
+        visible={!!error}
+        onDismiss={() => setError(null)}
+        duration={4500}
+        action={{
+          label: "ลองใหม่",
+          onPress: () => fetchData(),
+        }}
       >
-        <Card style={s.card} mode="elevated">
-          <Card.Content>
-            {rules.map((line, i) => (
-              <Text key={i} style={s.rule}>
-                {i + 1}. {line}
-              </Text>
-            ))}
-          </Card.Content>
-        </Card>
-      </ScrollView>
+        {error}
+      </Snackbar>
     </>
   );
 }
 
 const s = StyleSheet.create({
-  header: {
-    backgroundColor: "#2E7D32",
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 18,
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
   },
   card: {
     borderRadius: 18,
@@ -62,5 +150,25 @@ const s = StyleSheet.create({
     marginBottom: 12,
     fontSize: 15,
     lineHeight: 20,
+    color: "#111827",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  countText: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    paddingVertical: 20,
   },
 });

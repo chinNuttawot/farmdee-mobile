@@ -31,6 +31,7 @@ export type TaskWithMeta = Task & {
   area?: number;
   trucks?: number;
   paid_amount?: number;
+  totalAmount?: number;
 };
 
 type CreateTaskForm = {
@@ -192,10 +193,10 @@ export default function CreateTaskModal({
       : "Done";
     const baseStatus = isEdit ? initialTask!.status : newStatus;
     const baseColor = isEdit ? initialTask!.color : STATUS_COLORS[newStatus];
-
+    const jobType = form.jobType === "งานไร่";
     let newTask: TaskWithMeta = {
       title: form.title || (isEdit ? initialTask!.title : "งานใหม่"),
-      totalAmount: total_amount,
+      totalAmount: jobType ? total_amount : 0,
       status: baseStatus,
       color: baseColor,
       startDate: startD,
@@ -203,9 +204,9 @@ export default function CreateTaskModal({
       jobType: form.jobType,
       note: form.detail || "",
       assigneeConfigs: form.assignees.length ? form.assignees : [],
-      area: form.area ? Number(form.area) : 0,
-      trucks: form.trucks ? toInt(form.trucks) : 0,
-      paidAmount: form.paid_amount ? toNumber(form.paid_amount) : 0,
+      area: jobType ? (form.area ? Number(form.area) : 0) : 0,
+      trucks: jobType ? (form.trucks ? toInt(form.trucks) : 0) : 0,
+      paidAmount: jobType ? (form.paid_amount ? toNumber(form.paid_amount) : 0) : 0,
     };
 
     if (isEdit) {
@@ -307,13 +308,18 @@ export default function CreateTaskModal({
               <TextInput
                 mode="outlined"
                 label="จำนวนรถ"
+                editable={form.jobType === "งานไร่"}
                 value={form.trucks}
                 onChangeText={(v) =>
                   setForm({ ...form, trucks: sanitizeInt(v) })
                 }
                 keyboardType="numeric"
                 right={<TextInput.Affix text="คัน" />}
-                style={[styles.input, styles.col]}
+                style={[
+                  styles.input,
+                  styles.col,
+                  form.jobType !== "งานไร่" && styles.hideStyle,
+                ]}
               />
             </View>
 
@@ -340,6 +346,7 @@ export default function CreateTaskModal({
             <TextInput
               mode="outlined"
               label="จ่ายแล้ว"
+              editable={form.jobType === "งานไร่"}
               value={form.paid_amount}
               onChangeText={(v) =>
                 setForm({ ...form, paid_amount: sanitizeDecimal(v) })
@@ -347,12 +354,16 @@ export default function CreateTaskModal({
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash" />}
               right={<TextInput.Affix text="฿" />}
-              style={styles.input}
+              style={[
+                styles.input,
+                form.jobType !== "งานไร่" && styles.hideStyle,
+              ]}
             />
 
             <TextInput
               mode="outlined"
               label="จำนวนเงิน (ยอดเต็ม)"
+              editable={form.jobType === "งานไร่"}
               value={form.total}
               onChangeText={(v) =>
                 setForm({ ...form, total: sanitizeDecimal(v) })
@@ -360,7 +371,10 @@ export default function CreateTaskModal({
               keyboardType="numeric"
               left={<TextInput.Icon icon="cash-multiple" />}
               right={<TextInput.Affix text="฿" />}
-              style={styles.input}
+              style={[
+                styles.input,
+                form.jobType !== "งานไร่" && styles.hideStyle,
+              ]}
             />
 
             <TextInput

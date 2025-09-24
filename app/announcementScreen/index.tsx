@@ -1,11 +1,12 @@
 // app/announcementScreen.tsx
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import {
   Card,
@@ -21,13 +22,32 @@ import {
   Button,
   TextInput,
   Snackbar,
+  ActivityIndicator,
 } from "react-native-paper";
 
-type Announcement = {
-  id: string;
+// ===== Services (ต้องมีใน "@/service")
+import {
+  createAnnouncementService,
+  deleteAnnouncementService,
+  getAnnouncementsService,
+  toggleAnnouncementService,
+  updateAnnouncementService,
+} from "@/service";
+
+type BackendAnnouncement = {
+  id: number;
+  title: string;
+  content: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type AnnouncementRow = {
+  id: number;
   title: string;
   enabled: boolean;
-  detail?: string;
+  detail: string;
 };
 
 type FormMode = "create" | "edit";
@@ -35,41 +55,78 @@ type FormMode = "create" | "edit";
 export default function AnnouncementScreen() {
   const theme = useTheme();
 
-  const [rows, setRows] = useState<Announcement[]>([
-    {
-      id: "1",
-      title: "เช็กรถก่อนออกงาน (รถเที่ยว)",
-      enabled: true,
-      detail: "",
-    },
-    {
-      id: "2",
-      title: "ประกาศ 2",
-      enabled: false,
-      detail: "รายละเอียดประกาศ 2",
-    },
-    { id: "3", title: "เช็กรถก่อนออกงาน (สิบล้อ)", enabled: true, detail: "" },
-  ]);
+  // ===== State =====
+  const [rows, setRows] = useState<AnnouncementRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ---- delete modal ----
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<Announcement | null>(null);
+  const [selectedRow, setSelectedRow] = useState<AnnouncementRow | null>(null);
 
   // ---- form modal ----
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [formTitle, setFormTitle] = useState("");
   const [formDetail, setFormDetail] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
+  // feedback
   const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
 
-  const toggleRow = (id: string) =>
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
-    );
+  // ===== Mappers =====
+  const mapToRow = (b: BackendAnnouncement): AnnouncementRow => ({
+    id: b.id,
+    title: b.title ?? "",
+    detail: b.content ?? "",
+    enabled: !!b.is_active,
+  });
 
-  // ----- Create -----
+  // ===== Load data =====
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await getAnnouncementsService(); // expect { ok, message, data: BackendAnnouncement[] }
+      const list: AnnouncementRow[] = (data ?? []).map(mapToRow);
+      setRows(list);
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? "โหลดข้อมูลประกาศไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { data } = await getAnnouncementsService();
+      const list: AnnouncementRow[] = (data ?? []).map(mapToRow);
+      setRows(list);
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? "รีเฟรชไม่สำเร็จ");
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  // ===== List actions =====
+  const toggleRow = async (id: number) => {
+    try {
+      await toggleAnnouncementService(id); // server จะ flip is_active เอง
+      setInfoMsg("อัปเดตสถานะประกาศแล้ว");
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? "อัปเดตสถานะไม่สำเร็จ");
+    } finally {
+      await onRefresh();
+    }
+  };
+
+  // ===== Form actions =====
   const openCreate = () => {
     setFormMode("create");
     setEditingId(null);
@@ -78,8 +135,7 @@ export default function AnnouncementScreen() {
     setFormOpen(true);
   };
 
-  // ----- Edit -----
-  const openEdit = (row: Announcement) => {
+  const openEdit = (row: AnnouncementRow) => {
     setFormMode("edit");
     setEditingId(row.id);
     setFormTitle(row.title ?? "");
@@ -95,36 +151,35 @@ export default function AnnouncementScreen() {
       return;
     }
 
-    if (formMode === "create") {
-      const nextId = String(
-        rows.length ? Math.max(...rows.map((r) => +r.id)) + 1 : 1
-      );
-      setRows((prev) => [
-        ...prev,
-        {
-          id: nextId,
-          title: formTitle.trim(),
-          detail: formDetail.trim(),
-          enabled: false,
-        },
-      ]);
+    try {
+      if (formMode === "create") {
+        const payload = { title: formTitle.trim(), content: formDetail.trim() };
+        await createAnnouncementService(payload);
+        setInfoMsg("สร้างประกาศสำเร็จ");
+        setFormOpen(false);
+        return;
+      }
+      // edit
+      if (!editingId) return;
+      const updatingRow = rows.find((r) => r.id === editingId);
+      const payload = {
+        title: formTitle.trim(),
+        content: formDetail.trim(),
+        is_active: updatingRow?.enabled ?? true,
+        id: editingId,
+      };
+      await updateAnnouncementService(payload);
+      setInfoMsg("บันทึกการแก้ไขแล้ว");
       setFormOpen(false);
-      return;
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? "บันทึกประกาศไม่สำเร็จ");
+    } finally {
+      await onRefresh();
     }
-
-    if (!editingId) return;
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === editingId
-          ? { ...r, title: formTitle.trim(), detail: formDetail.trim() }
-          : r
-      )
-    );
-    setFormOpen(false);
   };
 
-  // ----- Delete -----
-  const openConfirm = (row: Announcement) => {
+  // ===== Delete actions =====
+  const openConfirm = (row: AnnouncementRow) => {
     setSelectedRow(row);
     setConfirmOpen(true);
   };
@@ -134,42 +189,72 @@ export default function AnnouncementScreen() {
   };
   const deleteItem = async () => {
     if (!selectedRow) return;
-    setRows((prev) => prev.filter((r) => r.id !== selectedRow.id));
-    closeConfirm();
+    const targetId = selectedRow.id;
+
+    // optimistic remove
+    const backup = rows;
+    setRows((prev) => prev.filter((r) => r.id !== targetId));
+
+    try {
+      await deleteAnnouncementService(targetId);
+      setInfoMsg("ลบประกาศแล้ว");
+      closeConfirm();
+    } catch (e: any) {
+      // rollback
+      setRows(backup);
+      setErrorMsg(e?.message ?? "ลบประกาศไม่สำเร็จ");
+      closeConfirm();
+    }
   };
 
   return (
     <View style={s.container}>
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView
+        contentContainerStyle={s.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <Card style={s.card} mode="elevated">
-          {rows.map((row, idx) => (
-            <View key={row.id}>
-              <List.Item
-                title={row.title}
-                description={row.detail ? row.detail : undefined}
-                onLongPress={() => openConfirm(row)} // กดค้างเพื่อลบ
-                onPress={() => openEdit(row)} // แตะเพื่อแก้ไข
-                titleStyle={s.title}
-                style={s.item}
-                right={() => (
-                  <View style={s.rightWrap}>
-                    <Switch
-                      value={row.enabled}
-                      onValueChange={() => toggleRow(row.id)}
-                      color={theme.colors.primary}
-                    />
-                    {/* เอาปุ่มดินสอออก เหลือ chevron อย่างเดียว */}
-                    <IconButton
-                      icon="chevron-right"
-                      size={22}
-                      onPress={() => openEdit(row)}
-                    />
-                  </View>
-                )}
-              />
-              {idx < rows.length - 1 && <Divider />}
+          {loading ? (
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <ActivityIndicator />
+              <Text style={{ marginTop: 8 }}>กำลังโหลดประกาศ…</Text>
             </View>
-          ))}
+          ) : rows.length === 0 ? (
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <Text>ยังไม่มีประกาศ</Text>
+            </View>
+          ) : (
+            rows.map((row, idx) => (
+              <View key={row.id}>
+                <List.Item
+                  title={row.title}
+                  description={row.detail ? row.detail : undefined}
+                  onLongPress={() => openConfirm(row)} // กดค้างเพื่อลบ
+                  onPress={() => openEdit(row)} // แตะเพื่อแก้ไข
+                  titleStyle={s.title}
+                  style={s.item}
+                  right={() => (
+                    <View style={s.rightWrap}>
+                      <Switch
+                        value={row.enabled}
+                        onValueChange={() => toggleRow(row.id)}
+                        color={theme.colors.primary}
+                      />
+                      {/* เอาปุ่มดินสอออก เหลือ chevron อย่างเดียว */}
+                      <IconButton
+                        icon="chevron-right"
+                        size={22}
+                        onPress={() => openEdit(row)}
+                      />
+                    </View>
+                  )}
+                />
+                {idx < rows.length - 1 && <Divider />}
+              </View>
+            ))
+          )}
         </Card>
       </ScrollView>
 
@@ -278,12 +363,20 @@ export default function AnnouncementScreen() {
         </Modal>
       </Portal>
 
+      {/* Snackbars */}
       <Snackbar
         visible={!!errorMsg}
         onDismiss={() => setErrorMsg("")}
-        duration={2000}
+        duration={2200}
       >
         {errorMsg}
+      </Snackbar>
+      <Snackbar
+        visible={!!infoMsg}
+        onDismiss={() => setInfoMsg("")}
+        duration={1800}
+      >
+        {infoMsg}
       </Snackbar>
     </View>
   );

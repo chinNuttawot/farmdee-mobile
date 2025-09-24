@@ -1,3 +1,9 @@
+import { createAnnouncementService } from "./announcementsService/createAnnouncementService/lindex";
+import { deleteAnnouncementService } from "./announcementsService/deleteAnnouncementService/lindex";
+import { getAnnouncementsService } from "./announcementsService/getAnnouncementsService/lindex";
+import { toggleAnnouncementService } from "./announcementsService/toggleAnnouncementService/lindex";
+import { updateAnnouncementService } from "./announcementsService/updateAnnouncementService/lindex";
+import { empAnnouncementsService } from "./empAnnouncementsService/lindex";
 import { expensesDeleteService } from "./expensesDeleteService/lindex";
 import { expensesSaveService } from "./expensesSaveService/lindex";
 import { expensesService } from "./expensesService/lindex";
@@ -38,4 +44,10 @@ export {
   deletePayrollByIDService,
   byMonthlyService,
   reportsService,
+  createAnnouncementService,
+  deleteAnnouncementService,
+  getAnnouncementsService,
+  toggleAnnouncementService,
+  updateAnnouncementService,
+  empAnnouncementsService,
 };

@@ -1,26 +1,37 @@
 // app/(tabs)/dashboard.tsx
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { ScrollView, View, StyleSheet } from "react-native";
-import { Card, Text } from "react-native-paper";
+import {
+  Card,
+  Text,
+  Portal,
+  Modal,
+  Button,
+  IconButton,
+  ActivityIndicator,
+} from "react-native-paper";
 import Header from "../../components/Header";
 
-import { STATUS_COLORS } from "../../lib/constants";
-import { inRange, formatAPI, startOfDay } from "../../lib/date";
+import { formatAPI, startOfDay } from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
-
 import TaskSearchBar from "../../components/Tasks/TaskSearchBar";
 import TaskEmptyCard from "../../components/Tasks/TaskEmptyCard";
 import DayResultText from "../../components/Tasks/DayResultText";
 import MultiCreateTasksModal from "../../components/Tasks/MultiCreateTasksModal";
 import { tasksService } from "@/service/index";
 
+// ✅ services สำหรับประกาศ
+import { getAnnouncementsService } from "@/service";
+
 // ------ ชนิดขยาย ------
 export type TaskWithMeta = Task & {
   area?: number;
   trucks?: number;
   paid_amount?: number;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
 };
 
 // ---------- การ์ดเรียบแบบภาพแรก ----------
@@ -50,19 +61,59 @@ function SimpleTaskCard({ task }: { task: TaskWithMeta }) {
   );
 }
 
+type BackendAnnouncement = {
+  id: number;
+  title: string;
+  content: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export default function Dashboard() {
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState<boolean>(true);
+  const [open, setOpen] = useState<boolean>(false); // โมดอลสร้างหลายงาน
   const [status, setStatus] = useState<StatusType>("ทั้งหมด");
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [tasks, setTasks] = useState<TaskWithMeta[]>([]);
 
-  // ✅ เปิดโมดอลเพิ่มหลายงานทุกครั้งที่เข้าเพจ
-  const [openMulti, setOpenMulti] = useState<boolean>(false);
+  // ====== Announcements modal (เฉพาะ is_active=true) ======
+  const [annLoading, setAnnLoading] = useState(false);
+  const [annList, setAnnList] = useState<BackendAnnouncement[]>([]);
+  const [annOpen, setAnnOpen] = useState(false);
+  const [annIndex, setAnnIndex] = useState(0);
+
+  // เปิดโมดอลสร้างหลายงานทุกครั้งที่เข้าเพจ (ตามของเดิม)
   useEffect(() => {
-    setOpenMulti(true);
+    setOpen(true);
   }, []);
 
+  // ====== Load only active announcements, newest first ======
+  const loadAnnouncements = useCallback(async () => {
+    setAnnLoading(true);
+    try {
+      const res = await getAnnouncementsService(); // { ok, message, data: BackendAnnouncement[] }
+      const activeOnly = (res?.data ?? [])
+        .filter((a: BackendAnnouncement) => a.is_active)
+        .sort(
+          (a: BackendAnnouncement, b: BackendAnnouncement) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
+      setAnnList(activeOnly);
+      setAnnIndex(0);
+      setAnnOpen(activeOnly.length > 0); // เปิด modal ถ้ามี active
+    } catch {
+      // เงียบไว้สำหรับหน้าแดชบอร์ด
+    } finally {
+      setAnnLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  // ====== Tasks ======
   useEffect(() => {
     getData();
   }, [selectedDate, status, search]);
@@ -76,9 +127,8 @@ export default function Dashboard() {
         params.status = status;
       }
       const q = (search ?? "").trim();
-      if (q) {
-        params.title = q.split(/\s+/).join("|");
-      }
+      if (q) params.title = q.split(/\s+/).join("|");
+
       const { data } = await tasksService(params);
       const items = Array.isArray(data?.items)
         ? (data.items as TaskWithMeta[])
@@ -89,9 +139,15 @@ export default function Dashboard() {
     }
   };
 
-  const filtered = useMemo(() => {
-    return tasks;
-  }, [tasks]);
+  const filtered = useMemo(() => tasks, [tasks]);
+
+  // ====== Handlers ของ announcement modal ======
+  const hasAnns = annList.length > 0;
+  const currentAnn = hasAnns ? annList[annIndex] : null;
+
+  const nextAnn = () =>
+    setAnnIndex((i) => (i + 1 < annList.length ? i + 1 : i));
+  const prevAnn = () => setAnnIndex((i) => (i - 1 >= 0 ? i - 1 : i));
 
   return (
     <>
@@ -128,6 +184,79 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
+      {/* ====== Announcements Modal (เฉพาะ role user) ====== */}
+      <Portal>
+        <Modal
+          visible={annOpen}
+          onDismiss={() => setAnnOpen(false)}
+          contentContainerStyle={ms.container}
+        >
+          <View style={ms.card}>
+            {annLoading ? (
+              <View style={{ padding: 24, alignItems: "center" }}>
+                <ActivityIndicator />
+                <Text style={{ marginTop: 8 }}>กำลังโหลดประกาศ…</Text>
+              </View>
+            ) : !currentAnn ? (
+              <View style={{ padding: 20 }}>
+                <Text>ไม่มีประกาศ</Text>
+              </View>
+            ) : (
+              <>
+                <View style={ms.header}>
+                  <Text style={ms.title} numberOfLines={2}>
+                    {currentAnn.title}
+                  </Text>
+                  <IconButton icon="close" onPress={() => setAnnOpen(false)} />
+                </View>
+
+                {/* เนื้อหายาว + รองรับขึ้นบรรทัดใหม่ด้วย \n */}
+                <ScrollView
+                  style={ms.contentScroll}
+                  contentContainerStyle={{ paddingBottom: 8 }}
+                  showsVerticalScrollIndicator
+                >
+                  <Text selectable style={ms.contentText}>
+                    {currentAnn.content}
+                  </Text>
+                </ScrollView>
+
+                {annList.length > 1 && (
+                  <View style={ms.footer}>
+                    <Button
+                      mode="contained-tonal"
+                      onPress={prevAnn}
+                      disabled={annIndex === 0}
+                    >
+                      ก่อนหน้า
+                    </Button>
+                    <Text style={ms.pageText}>
+                      {annIndex + 1} / {annList.length}
+                    </Text>
+                    <Button
+                      mode="contained"
+                      onPress={nextAnn}
+                      disabled={annIndex === annList.length - 1}
+                    >
+                      ถัดไป
+                    </Button>
+                  </View>
+                )}
+
+                <Button
+                  style={{ marginTop: 10 }}
+                  mode="contained"
+                  onPress={() => setAnnOpen(false)}
+                >
+                  ปิด
+                </Button>
+              </>
+            )}
+          </View>
+        </Modal>
+      </Portal>
+
+      {/* ====== โมดอลสร้างงานหลายรายการ (ของเดิม) ====== */}
       <MultiCreateTasksModal
         visible={open}
         onDismiss={() => {
@@ -164,4 +293,44 @@ const ss = StyleSheet.create({
     color: "#2E7D32",
     fontWeight: "700",
   },
+});
+
+// ---------- styles ของ Announcement Modal ----------
+const ms = StyleSheet.create({
+  container: { padding: 24, justifyContent: "center" },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    flex: 1,
+    paddingRight: 8,
+    color: "#111827",
+  },
+  contentScroll: {
+    marginTop: 8,
+    maxHeight: 360, // กันล้นจอสำหรับข้อความยาวมาก
+  },
+  contentText: { fontSize: 15, lineHeight: 22, color: "#334155" },
+  footer: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  pageText: { opacity: 0.7 },
 });
