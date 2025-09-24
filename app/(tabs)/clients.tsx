@@ -13,10 +13,13 @@ import {
 import { useRouter } from "expo-router";
 import { StorageUtility } from "@/providers/storageUtility";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
-import { logoutService } from "@/service"; // ✅ ใส่ API logout
+import { logoutService } from "@/service"; // ✅ API logout
+
+const SAVED_CREDENTIALS = "SAVED_CREDENTIALS"; // ✅ ใช้คู่กับ login remember me
 
 export default function Clients() {
   const [user, setUser] = useState<any>({});
+  const [loggingOut, setLoggingOut] = useState(false);
   const theme = useTheme();
   const router = useRouter();
 
@@ -70,22 +73,28 @@ export default function Clients() {
     })();
   }, []);
 
-  const handleLogout = async () => {
+  const doLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
-      await logoutService({}); // ✅ เรียก API ออกจากระบบ
+      await logoutService({}); // ✅ เรียก API logout
     } catch (e: any) {
       console.log("logoutService error:", e?.message);
-      // ไม่บล็อกผู้ใช้ ถ้า API ล้มเหลวก็ยังล้างข้อมูลและพาออกได้
     } finally {
-      await StorageUtility.remove(PROFILE_KEY); // ✅ ล้างโปรไฟล์ในแอป
-      router.replace("/(auth)/login"); // ✅ ไปหน้า Login
+      try {
+        // ✅ ล้างข้อมูลในเครื่องทั้ง profile + saved credentials
+        await StorageUtility.remove(PROFILE_KEY);
+        await StorageUtility.remove(SAVED_CREDENTIALS);
+      } catch {}
+      router.replace("/(auth)/login");
+      setLoggingOut(false);
     }
   };
 
   const confirmLogout = () =>
     Alert.alert("ออกจากระบบ", "คุณต้องการออกจากระบบหรือไม่?", [
       { text: "ยกเลิก", style: "cancel" },
-      { text: "ออกจากระบบ", style: "destructive", onPress: handleLogout },
+      { text: "ออกจากระบบ", style: "destructive", onPress: doLogout },
     ]);
 
   const ProfileRender = (
@@ -103,7 +112,7 @@ export default function Clients() {
             style={{ color: theme.colors.onPrimary, fontWeight: "700" }}
             numberOfLines={1}
           >
-            {user.full_name}
+            {user?.full_name ?? "ผู้ใช้งาน"}
           </Text>
         </View>
       </View>
@@ -138,10 +147,16 @@ export default function Clients() {
 
           {/* ออกจากระบบ */}
           <List.Item
-            title="ออกจากระบบ"
+            title={loggingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}
             onPress={confirmLogout}
-            titleStyle={{ color: theme.colors.error, fontWeight: "700" }}
+            titleStyle={{
+              color: loggingOut
+                ? theme.colors.onSurfaceDisabled
+                : theme.colors.error,
+              fontWeight: "700",
+            }}
             style={styles.item}
+            disabled={loggingOut}
           />
         </Card>
 

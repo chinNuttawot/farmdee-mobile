@@ -88,27 +88,36 @@ export default function Dashboard() {
     setOpen(true);
   }, []);
 
+  const normalizeMultiline = (s?: string) =>
+    (s ?? "").replace(/\r\n/g, "\n").replace(/\\n/g, "\n").trim();
+
   // ====== Load only active announcements, newest first ======
   const loadAnnouncements = useCallback(async () => {
     setAnnLoading(true);
     try {
-      const res = await getAnnouncementsService(); // { ok, message, data: BackendAnnouncement[] }
-      const activeOnly = (res?.data ?? [])
-        .filter((a: BackendAnnouncement) => a.is_active)
+      const res = await getAnnouncementsService(); // { ok, message, data: ... }
+      // รองรับทั้ง data เป็น array (เก่า) หรือ data.items (ใหม่)
+      const list: BackendAnnouncement[] = Array.isArray(res?.data)
+        ? res.data
+        : res?.data?.items ?? [];
+
+      const activeOnly = list
+        .filter((a) => a.is_active)
+        .map((a) => ({ ...a, content: normalizeMultiline(a.content) })) // ✅ แปลง \n
         .sort(
-          (a: BackendAnnouncement, b: BackendAnnouncement) =>
+          (a, b) =>
             new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );
+
       setAnnList(activeOnly);
       setAnnIndex(0);
-      setAnnOpen(activeOnly.length > 0); // เปิด modal ถ้ามี active
+      setAnnOpen(activeOnly.length > 0);
     } catch {
       // เงียบไว้สำหรับหน้าแดชบอร์ด
     } finally {
       setAnnLoading(false);
     }
   }, []);
-
   useEffect(() => {
     loadAnnouncements();
   }, [loadAnnouncements]);

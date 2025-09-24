@@ -15,6 +15,8 @@ import { StorageUtility } from "@/providers/storageUtility";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
 import { logoutService } from "@/service";
 
+const SAVED_CREDENTIALS = "SAVED_CREDENTIALS"; // <- ใช้คู่กับหน้า login (remember me + auto login)
+
 export default function Clients() {
   const [user, setUser] = useState<any>({});
   const [loggingOut, setLoggingOut] = useState(false);
@@ -49,13 +51,21 @@ export default function Clients() {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      // ถ้า service ของคุณต้องการ body เปล่า ให้คง { } ได้
-      await logoutService({}); // หรือ await logoutService();
+      // เรียก API ออกจากระบบ (ถ้า backend ต้องการ body ว่าง ให้ส่ง {} ได้)
+      await logoutService({});
     } catch (err: any) {
       console.log("logout error:", err?.message);
-      // ไม่บล็อก: ต่อให้ API ล้มเหลวก็เคลียร์ข้อมูลในเครื่องต่อได้
+      // ไม่บล็อกผู้ใช้: ต่อให้ API ล้มเหลวก็ล้างข้อมูลในเครื่องต่อได้
     } finally {
-      await StorageUtility.remove(PROFILE_KEY);
+      try {
+        // 1) กัน auto-login รอบถัดไป: ล้าง credentials ที่หน้า login เคยจำไว้
+        await StorageUtility.remove(SAVED_CREDENTIALS);
+
+        // 2) ล้างโปรไฟล์ที่เก็บไว้ใช้ในแอป
+        await StorageUtility.remove(PROFILE_KEY);
+      } catch {}
+
+      // 3) พาไปหน้า Login และรีเซ็ตสแตก
       router.replace("/(auth)/login");
       setLoggingOut(false);
     }
@@ -65,11 +75,7 @@ export default function Clients() {
     if (loggingOut) return;
     Alert.alert("ออกจากระบบ", "คุณต้องการออกจากระบบหรือไม่?", [
       { text: "ยกเลิก", style: "cancel" },
-      {
-        text: "ออกจากระบบ",
-        style: "destructive",
-        onPress: doLogout,
-      },
+      { text: "ออกจากระบบ", style: "destructive", onPress: doLogout },
     ]);
   };
 
