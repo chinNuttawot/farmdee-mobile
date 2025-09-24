@@ -76,6 +76,7 @@ export default function Dashboard() {
   const [status, setStatus] = useState<StatusType>("ทั้งหมด");
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [tasks, setTasks] = useState<TaskWithMeta[]>([]);
+  const [loading, setLoading] = useState<boolean>(false); // ✅ loading สำหรับ tasks
 
   // ====== Announcements modal (เฉพาะ is_active=true) ======
   const [annLoading, setAnnLoading] = useState(false);
@@ -125,9 +126,11 @@ export default function Dashboard() {
   // ====== Tasks ======
   useEffect(() => {
     getData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, status, search]);
 
   const getData = async () => {
+    setLoading(true); // ✅ เริ่มโหลด
     try {
       const params: { from: string; status?: string; title?: string } = {
         from: formatAPI(selectedDate),
@@ -145,6 +148,8 @@ export default function Dashboard() {
       setTasks(items);
     } catch (err: any) {
       alert(err?.message ?? "getData: เกิดข้อผิดพลาด");
+    } finally {
+      setLoading(false); // ✅ จบโหลด
     }
   };
 
@@ -168,16 +173,17 @@ export default function Dashboard() {
       >
         <MiniCalendar
           value={selectedDate}
-          onChange={(d) => setSelectedDate(startOfDay(d))}
+          onChange={(d) => {
+            // กัน spam เปลี่ยนวันตอนกำลังโหลด
+            if (!loading) setSelectedDate(startOfDay(d));
+          }}
         />
-
-        {/* <StatusFilterChips value={status} onChange={setStatus} /> */}
 
         <TaskSearchBar
           value={search}
-          onChange={setSearch}
+          onChange={(v) => (!loading ? setSearch(v) : undefined)}
           onSubmit={() => {}}
-          onClear={() => setSearch("")}
+          onClear={() => (!loading ? setSearch("") : undefined)}
         />
 
         <DayResultText
@@ -185,12 +191,22 @@ export default function Dashboard() {
           dateText={formatAPI(selectedDate)}
         />
 
-        <View style={{ gap: 12 }}>
-          {filtered.map((t) => (
-            <SimpleTaskCard key={t.id} task={t} />
-          ))}
-          {filtered.length === 0 && <TaskEmptyCard />}
-        </View>
+        {/* ====== แสดง Loading ระหว่างดึงรายการงาน ====== */}
+        {loading ? (
+          <View style={s.loadingWrap}>
+            <ActivityIndicator />
+            <Text style={{ marginTop: 8, opacity: 0.7 }}>
+              กำลังโหลดรายการงาน…
+            </Text>
+          </View>
+        ) : (
+          <View style={{ gap: 12 }}>
+            {filtered.map((t) => (
+              <SimpleTaskCard key={t.id} task={t} />
+            ))}
+            {filtered.length === 0 && <TaskEmptyCard />}
+          </View>
+        )}
       </ScrollView>
 
       {/* ====== Announcements Modal (เฉพาะ role user) ====== */}
@@ -342,4 +358,13 @@ const ms = StyleSheet.create({
     gap: 8,
   },
   pageText: { opacity: 0.7 },
+});
+
+// ---------- styles เพิ่มเติม ----------
+const s = StyleSheet.create({
+  loadingWrap: {
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
