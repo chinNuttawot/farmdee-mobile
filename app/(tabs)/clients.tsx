@@ -54,7 +54,7 @@ export default function Clients() {
         onPress: () =>
           router.push({
             pathname: "/employee",
-            params: { menuName: "evaluateEmployee" },
+            params: { menuName: "employee/evaluations" },
           }),
       },
       {

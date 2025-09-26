@@ -155,6 +155,24 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
+                <Stack.Screen
+                  name="employee/evaluations"
+                  options={{
+                    title: "การประเมินพนักงาน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
+                <Stack.Screen
+                  name="employee/evaluateEmployee"
+                  options={{
+                    title: "การประเมินพนักงาน",
+                    headerShown: true,
+                    headerStyle: { backgroundColor: PRIMARY },
+                    headerTintColor: "#fff",
+                  }}
+                />
               </Stack>
             </View>
           </GestureHandlerRootView>
