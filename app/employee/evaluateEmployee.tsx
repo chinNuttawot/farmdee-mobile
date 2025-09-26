@@ -1,3 +1,4 @@
+// app/employee/evaluateEmployee.tsx (เดิม EvaluateEmployee)
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
@@ -31,7 +32,6 @@ const BG_SOFT = "#F2F7F2";
 const INPUT_BG = "#EAF7E9";
 const CARD_BORDER = "#DDEDDC";
 const SUBCARD_BORDER = "#E6F1E6";
-const TAG_BG = "#E7F3E7";
 const SHADOW = "rgba(0,0,0,0.08)";
 
 type EvalItem = {
@@ -72,10 +72,11 @@ const toKey = (id: string | number) => String(id);
 
 export default function EvaluateEmployee() {
   const router = useRouter();
-  const { id, full_name, evaluationId } = useLocalSearchParams<{
+  const { id, full_name, evaluationId, isView } = useLocalSearchParams<{
     id?: string;
     full_name?: string;
     evaluationId?: string;
+    isView?: string;
   }>();
 
   const employeeId = useMemo(() => (id ? Number(id) : NaN), [id]);
@@ -83,6 +84,7 @@ export default function EvaluateEmployee() {
     () => (evaluationId ? Number(evaluationId) : NaN),
     [evaluationId]
   );
+  const isViewMode = (isView ?? "").toString().toLowerCase() === "true";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,12 +96,12 @@ export default function EvaluateEmployee() {
   const [note, setNote] = useState("");
 
   const isSubmitted = evaluation?.status === "Submitted";
+  const isReadonly = isSubmitted || isViewMode;
 
   const allItems: EvalItem[] = useMemo(
     () => evaluation?.sections.flatMap((s) => s.items) ?? [],
     [evaluation]
   );
-
   const apiTotalMax = evaluation?.total_max_score ?? 0;
   const calcTotalScore = useMemo(
     () =>
@@ -124,14 +126,16 @@ export default function EvaluateEmployee() {
       if (!Number.isNaN(givenEvalId)) {
         evalIdToUse = givenEvalId;
       } else {
+        // โหมดดูอย่างเดียวห้ามสร้างใหม่
+        if (isViewMode) {
+          throw new Error("ไม่พบรหัสแบบประเมิน");
+        }
         if (!employeeId || Number.isNaN(employeeId)) {
           Alert.alert("Error", "ไม่พบรหัสพนักงาน");
           setLoading(false);
           return;
         }
-        const { data: created } = await CreateEvaluationService({
-          employeeId,
-        });
+        const { data: created } = await CreateEvaluationService({ employeeId });
         evalIdToUse = created?.id ?? null;
       }
 
@@ -159,13 +163,14 @@ export default function EvaluateEmployee() {
     } finally {
       setLoading(false);
     }
-  }, [employeeId, givenEvalId]);
+  }, [employeeId, givenEvalId, isViewMode]);
 
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
 
   const handleChangeScore = (it: EvalItem, text: string) => {
+    if (isReadonly) return; // กันแก้ไขในโหมดดูอย่างเดียว
     const cleaned = text.replace(/[^\d]/g, "");
     let n = cleaned ? parseInt(cleaned, 10) : NaN;
     if (!Number.isNaN(n)) n = clamp(n, 0, Number(it.max_score) || 0);
@@ -176,21 +181,14 @@ export default function EvaluateEmployee() {
   };
 
   const handleSave = async () => {
-    if (!evaluation?.id) return;
+    if (isReadonly || !evaluation?.id) return;
     try {
       setSaving(true);
-
       const items = allItems.map((it) => ({
         itemId: Number(it.item_id),
         score: parseInt(scores[toKey(it.item_id)] || "0", 10) || 0,
       }));
-
-      await SaveScoresService({
-        id: evaluation.id,
-        items,
-        note,
-      });
-
+      await SaveScoresService({ id: evaluation.id, items, note });
       setSnack("บันทึกเรียบร้อย");
     } catch (err: any) {
       console.error(err);
@@ -201,7 +199,7 @@ export default function EvaluateEmployee() {
   };
 
   const handleSubmit = async () => {
-    if (!evaluation?.id) return;
+    if (isReadonly || !evaluation?.id) return;
     Alert.alert("ยืนยันการส่งประเมิน", "เมื่อส่งแล้วจะแก้ไขไม่ได้", [
       { text: "ยกเลิก", style: "cancel" },
       {
@@ -211,7 +209,7 @@ export default function EvaluateEmployee() {
           try {
             setSubmitting(true);
             await handleSave();
-            await SubmitEvaluationService(evaluation.id); // ✅ ใช้ evaluation.id
+            await SubmitEvaluationService(evaluation.id);
             router.back();
           } catch (err: any) {
             Alert.alert("ส่งไม่สำเร็จ", err?.message ?? "กรุณาลองอีกครั้ง");
@@ -235,14 +233,18 @@ export default function EvaluateEmployee() {
     return (
       <View style={[sx.center, { flex: 1, backgroundColor: BG_SOFT }]}>
         <Text>ไม่พบข้อมูลแบบประเมิน</Text>
-        <Button mode="contained" style={{ marginTop: 12 }} onPress={bootstrap}>
-          ลองใหม่
-        </Button>
+        {!isViewMode && (
+          <Button
+            mode="contained"
+            style={{ marginTop: 12 }}
+            onPress={bootstrap}
+          >
+            ลองใหม่
+          </Button>
+        )}
       </View>
     );
   }
-
-  const isReadonly = isSubmitted;
 
   return (
     <KeyboardAvoidingView
@@ -262,8 +264,8 @@ export default function EvaluateEmployee() {
             <Text style={sx.formTitle}>
               {evaluation.template_name || "การประเมินพนักงาน"}
             </Text>
-            <Chip compact style={sx.statusChipMeta}>
-              {evaluation.status}
+            <Chip compact style={{ backgroundColor: "#EEF7EE" }}>
+              {isReadonly ? "View" : evaluation.status}
             </Chip>
           </View>
           <Text style={sx.metaText}>
@@ -341,41 +343,29 @@ export default function EvaluateEmployee() {
             %)
           </Text>
 
-          <View style={sx.footer}>
-            <Button
-              mode="contained"
-              style={sx.btnCancel}
-              labelStyle={sx.btnCancelLabel}
-              onPress={() => router.back()}
-              disabled={saving || submitting}
-            >
-              ย้อนกลับ
-            </Button>
-
-            {!isReadonly && (
-              <>
-                <Button
-                  mode="contained"
-                  style={sx.btnSave}
-                  labelStyle={sx.btnSaveLabel}
-                  onPress={handleSave}
-                  loading={saving}
-                >
-                  บันทึก
-                </Button>
-                <Button
-                  mode="contained"
-                  style={sx.btnSubmit}
-                  labelStyle={sx.btnSubmitLabel}
-                  onPress={handleSubmit}
-                  loading={submitting}
-                  disabled={saving}
-                >
-                  ส่งประเมิน
-                </Button>
-              </>
-            )}
-          </View>
+          {!isReadonly && (
+            <View style={sx.footer}>
+              <Button
+                mode="contained"
+                style={sx.btnSave}
+                labelStyle={sx.btnSaveLabel}
+                onPress={handleSave}
+                loading={saving}
+              >
+                บันทึก
+              </Button>
+              <Button
+                mode="contained"
+                style={sx.btnSubmit}
+                labelStyle={sx.btnSubmitLabel}
+                onPress={handleSubmit}
+                loading={submitting}
+                disabled={saving}
+              >
+                ส่งประเมิน
+              </Button>
+            </View>
+          )}
         </View>
       </ScrollView>
 

@@ -1,3 +1,4 @@
+// app/employee/evaluations.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -17,7 +18,11 @@ import {
   ActivityIndicator,
   IconButton,
 } from "react-native-paper";
-import { ListEvaluationsService, CreateEvaluationService } from "@/service";
+import {
+  ListEvaluationsService,
+  CreateEvaluationService,
+  DeleteEvaluationService, // ✅ เพิ่ม service ลบ
+} from "@/service";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
 import { StorageUtility } from "@/providers/storageUtility";
 import moment from "moment";
@@ -39,16 +44,19 @@ type EvalRow = {
 
 export default function EmployeeEvaluations() {
   const router = useRouter();
-  const { id, full_name } = useLocalSearchParams<{
+  const { id, full_name, isView } = useLocalSearchParams<{
     id?: string;
     full_name?: string;
+    isView?: string;
   }>();
   const userId = useMemo(() => (id ? Number(id) : NaN), [id]);
+  const isViewMode = (isView ?? "").toString().toLowerCase() === "true";
 
   const [list, setList] = useState<EvalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null); // ✅
 
   const load = useCallback(async () => {
     if (!userId || Number.isNaN(userId)) {
@@ -60,14 +68,11 @@ export default function EmployeeEvaluations() {
       setLoading(true);
       const { data } = await ListEvaluationsService({ employeeId: userId });
       const items: EvalRow[] = Array.isArray(data?.items) ? data.items : [];
-
-      // ใหม่สุดอยู่บน
       items.sort((a, b) => {
         const tb = new Date(b.updated_at ?? b.created_at ?? 0).getTime();
         const ta = new Date(a.updated_at ?? a.created_at ?? 0).getTime();
         return tb - ta;
       });
-
       setList(items);
     } catch (err: any) {
       console.error(err);
@@ -77,12 +82,9 @@ export default function EmployeeEvaluations() {
     }
   }, [userId]);
 
-  // โหลดครั้งแรก
   useEffect(() => {
     load();
   }, [load]);
-
-  // โหลดทุกครั้งที่กลับมาโฟกัสหน้านี้ (หลังจาก router.back())
   useFocusEffect(
     useCallback(() => {
       load();
@@ -100,18 +102,17 @@ export default function EmployeeEvaluations() {
   }, [load]);
 
   const createEvaluation = useCallback(async () => {
+    if (isViewMode) return; // โหมดดูอย่างเดียวไม่ให้สร้าง
     if (!userId || Number.isNaN(userId)) return;
     try {
       setCreating(true);
       const profileRaw = await StorageUtility.get(PROFILE_KEY);
       const profile = profileRaw ? JSON.parse(profileRaw) : null;
-
       const { data } = await CreateEvaluationService({
         employeeId: userId,
         evaluatorId: profile?.id,
         workMonth: moment().format("YYYY-MM"),
       });
-
       const newId = data?.id;
       if (!newId) {
         Alert.alert("ไม่สามารถสร้างแบบประเมิน", "ไม่พบรหัสที่สร้าง");
@@ -127,18 +128,56 @@ export default function EmployeeEvaluations() {
     } finally {
       setCreating(false);
     }
-  }, [router, userId, full_name]);
+  }, [router, userId, full_name, isViewMode]);
 
   const openEvaluation = (row: EvalRow) => {
     router.push({
       pathname: "/employee/evaluateEmployee",
       params: {
         evaluationId: String(row.id),
-        id: String(userId), // ให้ตรงกับหน้าฟอร์ม
+        id: String(userId),
         full_name,
+        isView: String(isViewMode), // ส่งต่อสถานะดูอย่างเดียว
       },
     });
   };
+
+  // ✅ ลบรายการ (เฉพาะ Draft และเมื่อไม่ใช่โหมดดูอย่างเดียว)
+  const tryDelete = useCallback(
+    (row: EvalRow) => {
+      if (isViewMode) return;
+      if (row.status !== "Draft") {
+        Alert.alert("ลบไม่ได้", "รายการที่ส่งแล้วไม่สามารถลบได้");
+        return;
+      }
+      Alert.alert(
+        "ลบรายการประเมิน",
+        `ต้องการลบรอบที่ ${row.round_no ?? "-"} ของเดือน ${
+          row.work_month ?? "-"
+        } ใช่ไหม?`,
+        [
+          { text: "ยกเลิก", style: "cancel" },
+          {
+            text: "ลบ",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setDeletingId(row.id);
+                await DeleteEvaluationService(row.id);
+                setList((prev) => prev.filter((it) => it.id !== row.id));
+              } catch (err: any) {
+                console.error(err);
+                Alert.alert("ลบไม่สำเร็จ", err?.message ?? "กรุณาลองใหม่");
+              } finally {
+                setDeletingId(null);
+              }
+            },
+          },
+        ]
+      );
+    },
+    [isViewMode]
+  );
 
   const renderItem = ({ item }: { item: EvalRow }) => {
     const statusColor =
@@ -148,8 +187,15 @@ export default function EmployeeEvaluations() {
         ? "#F59E0B"
         : "#6B7280";
 
+    const isDeleting = deletingId === item.id;
+
     return (
-      <Card style={sx.card} onPress={() => openEvaluation(item)}>
+      <Card
+        style={[sx.card, isDeleting && { opacity: 0.5 }]}
+        onPress={() => openEvaluation(item)}
+        onLongPress={() => tryDelete(item)} // ✅ กดค้างเพื่อลบ
+        delayLongPress={450}
+      >
         <Card.Content>
           <View style={sx.rowHeader}>
             <Text style={sx.title}>การประเมินพนักงาน</Text>
@@ -182,15 +228,23 @@ export default function EmployeeEvaluations() {
               compact
               mode="text"
               onPress={() => openEvaluation(item)}
-              icon={item.status === "Submitted" ? "eye" : "pencil"}
+              icon={
+                isViewMode || item.status === "Submitted" ? "eye" : "pencil"
+              }
               textColor={GREEN}
             >
-              {item.status === "Submitted" ? "ดูรายละเอียด" : "ทำต่อ"}
+              {isViewMode || item.status === "Submitted"
+                ? "ดูรายละเอียด"
+                : "ทำต่อ"}
             </Button>
-            <IconButton
-              icon="chevron-right"
-              onPress={() => openEvaluation(item)}
-            />
+            {isDeleting ? (
+              <ActivityIndicator />
+            ) : (
+              <IconButton
+                icon="chevron-right"
+                onPress={() => openEvaluation(item)}
+              />
+            )}
           </View>
         </Card.Content>
       </Card>
@@ -213,7 +267,10 @@ export default function EmployeeEvaluations() {
           <FlatList
             data={list}
             keyExtractor={(it) => String(it.id)}
-            contentContainerStyle={{ padding: 12, paddingBottom: 100 }}
+            contentContainerStyle={{
+              padding: 12,
+              paddingBottom: isViewMode ? 16 : 100,
+            }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -225,19 +282,20 @@ export default function EmployeeEvaluations() {
             }
           />
 
-          {/* ปุ่มสร้างประเมิน */}
-          <View style={sx.bottomBar}>
-            <Button
-              mode="contained"
-              onPress={createEvaluation}
-              loading={creating}
-              disabled={creating}
-              style={sx.createBtn}
-              labelStyle={{ fontWeight: "700" }}
-            >
-              สร้างประเมิน
-            </Button>
-          </View>
+          {!isViewMode && (
+            <View style={sx.bottomBar}>
+              <Button
+                mode="contained"
+                onPress={createEvaluation}
+                loading={creating}
+                disabled={creating}
+                style={sx.createBtn}
+                labelStyle={{ fontWeight: "700" }}
+              >
+                สร้างประเมิน
+              </Button>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -253,15 +311,9 @@ const sx = StyleSheet.create({
     borderBottomColor: "#E5E7EB",
   },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#1F2937" },
-
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   empty: { padding: 24, alignItems: "center" },
-
-  card: {
-    borderRadius: 14,
-    marginBottom: 10,
-    overflow: "hidden",
-  },
+  card: { borderRadius: 14, marginBottom: 10, overflow: "hidden" },
   rowHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -273,13 +325,11 @@ const sx = StyleSheet.create({
   percent: { color: "#065F46", fontWeight: "700" },
   note: { marginTop: 4, color: "#374151" },
   statusChip: { height: 28 },
-
   rowFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   bottomBar: {
     position: "absolute",
     left: 0,

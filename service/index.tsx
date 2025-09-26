@@ -5,6 +5,7 @@ import { toggleAnnouncementService } from "./announcementsService/toggleAnnounce
 import { updateAnnouncementService } from "./announcementsService/updateAnnouncementService/lindex";
 import { empAnnouncementsService } from "./empAnnouncementsService/lindex";
 import { CreateEvaluationService } from "./evalsService/CreateEvaluationService/lindex";
+import { DeleteEvaluationService } from "./evalsService/DeleteEvaluationService/lindex";
 import { GetEvaluationbyIDService } from "./evalsService/GetEvaluationbyIDService/lindex";
 import { ListEvaluationsService } from "./evalsService/ListEvaluationsService/lindex";
 import { SaveScoresService } from "./evalsService/SaveScoresService/lindex";
@@ -64,4 +65,5 @@ export {
   GetEvaluationbyIDService,
   SaveScoresService,
   SubmitEvaluationService,
+  DeleteEvaluationService
 };

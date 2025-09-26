@@ -1,6 +1,6 @@
 // app/(tabs)/clients.tsx
 import Header from "@/components/Header";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
   Avatar,
@@ -15,57 +15,84 @@ import { StorageUtility } from "@/providers/storageUtility";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
 import { logoutService } from "@/service";
 
-const SAVED_CREDENTIALS = "SAVED_CREDENTIALS"; // <- ใช้คู่กับหน้า login (remember me + auto login)
+const SAVED_CREDENTIALS = "SAVED_CREDENTIALS";
+
+type Profile = {
+  id: number;
+  full_name?: string;
+  role?: "Admin" | "Boss" | "User" | string;
+};
 
 export default function Clients() {
-  const [user, setUser] = useState<any>({});
+  const [user, setUser] = useState<Profile | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const theme = useTheme();
   const router = useRouter();
 
-  const menuItems = useMemo(
-    () => [
-      {
-        key: "evaluation",
-        title: "การประเมินงานของฉัน",
-        onPress: () => {},
-      },
-    ],
-    []
-  );
-
   useEffect(() => {
-    getData();
+    (async () => {
+      try {
+        const raw = await StorageUtility.get(PROFILE_KEY);
+        if (raw) setUser(JSON.parse(raw));
+      } catch {
+        /* เงียบไว้ */
+      }
+    })();
   }, []);
 
-  const getData = async () => {
-    try {
-      const res = await StorageUtility.get(PROFILE_KEY);
-      if (res) setUser(JSON.parse(res));
-    } catch (e) {
-      // เงียบไว้ ไม่ต้อง block หน้าจอ
+  const openMyEvaluations = useCallback(() => {
+    if (!user?.id) {
+      Alert.alert("ไม่พบผู้ใช้", "กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      return;
     }
-  };
+    // ไปที่หน้ารายการประเมิน โดยบังคับส่ง id ของตัวเองเท่านั้น
+    router.push({
+      pathname: "/employee/evaluations",
+      params: {
+        id: String(user.id),
+        full_name: user.full_name ?? "ฉัน",
+        isView: true,
+      },
+    });
+  }, [router, user]);
+
+  // เมนู: สำหรับ role 'User' ให้มีเฉพาะเมนูของตัวเอง
+  // ถ้าเป็น Admin/Boss อนาคตค่อยเติมเมนูเพิ่มได้
+  const menuItems = useMemo(() => {
+    if (!user) return [];
+    if (user.role === "User") {
+      return [
+        {
+          key: "evaluation-me",
+          title: "การประเมินงานของฉัน",
+          onPress: openMyEvaluations,
+        },
+      ];
+    }
+    // Admin/Boss อาจมีเมนูอื่น (ยังคงมี "ของฉัน" ไว้ด้วย)
+    return [
+      {
+        key: "evaluation-me",
+        title: "การประเมินงานของฉัน",
+        onPress: openMyEvaluations,
+      },
+      // ตัวอย่างเมนูสำหรับผู้ดูแล (คอมเมนต์ไว้ก่อน)
+      // { key: "evaluation-manage", title: "จัดการการประเมินพนักงาน", onPress: () => router.push("/employee/manage") },
+    ];
+  }, [user, openMyEvaluations]);
 
   const doLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      // เรียก API ออกจากระบบ (ถ้า backend ต้องการ body ว่าง ให้ส่ง {} ได้)
       await logoutService({});
     } catch (err: any) {
       console.log("logout error:", err?.message);
-      // ไม่บล็อกผู้ใช้: ต่อให้ API ล้มเหลวก็ล้างข้อมูลในเครื่องต่อได้
     } finally {
       try {
-        // 1) กัน auto-login รอบถัดไป: ล้าง credentials ที่หน้า login เคยจำไว้
         await StorageUtility.remove(SAVED_CREDENTIALS);
-
-        // 2) ล้างโปรไฟล์ที่เก็บไว้ใช้ในแอป
         await StorageUtility.remove(PROFILE_KEY);
       } catch {}
-
-      // 3) พาไปหน้า Login และรีเซ็ตสแตก
       router.replace("/(auth)/login");
       setLoggingOut(false);
     }
@@ -95,6 +122,16 @@ export default function Clients() {
             numberOfLines={1}
           >
             {user?.full_name ?? "ผู้ใช้งาน"}
+          </Text>
+          <Text
+            style={{
+              color: `${theme.colors.onPrimary}CC`,
+              fontSize: 12,
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {user?.role ?? "-"}
           </Text>
         </View>
       </View>
