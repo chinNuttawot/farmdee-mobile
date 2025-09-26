@@ -4,6 +4,11 @@ import { getAnnouncementsService } from "./announcementsService/getAnnouncements
 import { toggleAnnouncementService } from "./announcementsService/toggleAnnouncementService/lindex";
 import { updateAnnouncementService } from "./announcementsService/updateAnnouncementService/lindex";
 import { empAnnouncementsService } from "./empAnnouncementsService/lindex";
+import { CreateEvaluationService } from "./evalsService/CreateEvaluationService/lindex";
+import { GetEvaluationbyIDService } from "./evalsService/GetEvaluationbyIDService/lindex";
+import { ListEvaluationsService } from "./evalsService/ListEvaluationsService/lindex";
+import { SaveScoresService } from "./evalsService/SaveScoresService/lindex";
+import { SubmitEvaluationService } from "./evalsService/SubmitEvaluationService/lindex";
 import { expensesDeleteService } from "./expensesDeleteService/lindex";
 import { expensesSaveService } from "./expensesSaveService/lindex";
 import { expensesService } from "./expensesService/lindex";
@@ -54,4 +59,9 @@ export {
   empAnnouncementsService,
   ruleService,
   logoutService,
+  CreateEvaluationService,
+  ListEvaluationsService,
+  GetEvaluationbyIDService,
+  SaveScoresService,
+  SubmitEvaluationService,
 };

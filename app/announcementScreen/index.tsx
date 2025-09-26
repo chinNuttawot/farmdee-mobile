@@ -88,7 +88,7 @@ export default function AnnouncementScreen() {
     setLoading(true);
     try {
       const { data } = await getAnnouncementsService(); // expect { ok, message, data: BackendAnnouncement[] }
-      const list: AnnouncementRow[] = (data ?? []).map(mapToRow);
+      const list: AnnouncementRow[] = (data.items ?? []).map(mapToRow);
       setRows(list);
     } catch (e: any) {
       setErrorMsg(e?.message ?? "โหลดข้อมูลประกาศไม่สำเร็จ");
@@ -105,7 +105,7 @@ export default function AnnouncementScreen() {
     setRefreshing(true);
     try {
       const { data } = await getAnnouncementsService();
-      const list: AnnouncementRow[] = (data ?? []).map(mapToRow);
+      const list: AnnouncementRow[] = (data.items ?? []).map(mapToRow);
       setRows(list);
     } catch (e: any) {
       setErrorMsg(e?.message ?? "รีเฟรชไม่สำเร็จ");
