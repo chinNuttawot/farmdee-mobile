@@ -2,15 +2,20 @@
 import React from "react";
 import { Stack } from "expo-router";
 import { PaperProvider, MD3LightTheme } from "react-native-paper";
-import { SafeAreaView, StatusBar, StyleSheet, View } from "react-native";
+import { StyleSheet, View, StatusBar, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AuthProvider from "../context/AuthContext";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 // ---- THEME (Agriculture / Farm) ----
-export const PRIMARY = "#3E9B4F"; // เขียวหลัก
-export const BG = "#F6FBF6"; // เขียวจางเป็นพื้นหลัง
-export const OUTLINE = "#C9DEC9"; // เส้นขอบโทนเขียว
+export const PRIMARY = "#3E9B4F";
+export const BG = "#F6FBF6";
+export const OUTLINE = "#C9DEC9";
 
 const farmTheme = {
   ...MD3LightTheme,
@@ -32,8 +37,9 @@ export default function RootLayout() {
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            {/* SafeArea ด้านบนให้สีเข้ากับ StatusBar */}
+            {/* SafeArea ด้านบน */}
             <SafeAreaView
+              edges={["top"]}
               style={[styles.topArea, { backgroundColor: PRIMARY }]}
             >
               <StatusBar
@@ -43,7 +49,7 @@ export default function RootLayout() {
               />
             </SafeAreaView>
 
-            {/* พื้นที่เนื้อหา ใช้สี background ของธีม */}
+            {/* เนื้อหา */}
             <View
               style={[
                 styles.appArea,
@@ -53,9 +59,7 @@ export default function RootLayout() {
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  // ✅ ซ่อนชื่อที่แสดงข้างปุ่ม Back บน iOS ทุกหน้า
                   headerBackTitleVisible: false,
-                  // เสริม: ไม่โชว์เงา header และจัดกึ่งกลาง title เวลามี header
                   headerShadowVisible: false,
                   headerTitleAlign: "center",
                 }}
@@ -69,13 +73,12 @@ export default function RootLayout() {
                 <Stack.Screen
                   name="reports/index"
                   options={{
-                    title: "รายงาน",
+                    title: "สถิติ & รายงาน",
                     headerShown: true,
                     headerStyle: { backgroundColor: PRIMARY },
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="salary/index"
                   options={{
@@ -85,7 +88,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="reportsMonthlyScreen/index"
                   options={{
@@ -95,7 +97,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="configSalary/index"
                   options={({ route }) => ({
@@ -105,7 +106,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   })}
                 />
-
                 <Stack.Screen
                   name="evaluateEmployee/index"
                   options={({ route }) => ({
@@ -115,7 +115,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   })}
                 />
-
                 <Stack.Screen
                   name="employee/index"
                   options={{
@@ -125,7 +124,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="announcementScreen/index"
                   options={{
@@ -135,7 +133,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="invoices/index"
                   options={{
@@ -145,7 +142,6 @@ export default function RootLayout() {
                     headerTintColor: "#fff",
                   }}
                 />
-
                 <Stack.Screen
                   name="rewards/index"
                   options={{
@@ -175,6 +171,12 @@ export default function RootLayout() {
                 />
               </Stack>
             </View>
+            {Platform.OS === "android" && (
+              <SafeAreaView
+                edges={["bottom"]}
+                style={{ backgroundColor: "#FFFFFF" }}
+              />
+            )}
           </GestureHandlerRootView>
         </QueryClientProvider>
       </AuthProvider>

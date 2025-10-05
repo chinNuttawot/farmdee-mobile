@@ -24,6 +24,8 @@ import { tasksService } from "@/service/index";
 
 // ✅ services สำหรับประกาศ
 import { getAnnouncementsService } from "@/service";
+import { StorageUtility } from "@/providers/storageUtility";
+import { PROFILE_KEY } from "@/service/profileService/lindex";
 
 // ------ ชนิดขยาย ------
 export type TaskWithMeta = Task & {
@@ -132,7 +134,12 @@ export default function Dashboard() {
   const getData = async () => {
     setLoading(true); // ✅ เริ่มโหลด
     try {
-      const params: { from: string; status?: string; title?: string } = {
+      const params: {
+        from: string;
+        status?: string;
+        title?: string;
+        userId: number;
+      } = {
         from: formatAPI(selectedDate),
       };
       if (status && status !== "ทั้งหมด") {
@@ -141,6 +148,8 @@ export default function Dashboard() {
       const q = (search ?? "").trim();
       if (q) params.title = q.split(/\s+/).join("|");
 
+      const Profile = JSON.parse(await StorageUtility.get(PROFILE_KEY));
+      params.userId = Profile.id;
       const { data } = await tasksService(params);
       const items = Array.isArray(data?.items)
         ? (data.items as TaskWithMeta[])

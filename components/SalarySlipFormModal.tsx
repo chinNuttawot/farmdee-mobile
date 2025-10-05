@@ -226,16 +226,6 @@ export default function SalarySlipFormModal({
                     <Divider style={{ marginTop: 8 }} />
                   </View>
                 )}
-                {Array.isArray(previewDetails) && previewDetails.length > 0 && (
-                  <View style={{ marginBottom: 8 }}>
-                    {previewDetails.map((d, i) => (
-                      <Text key={`${d.taskId}-${i}`} style={sx.detailLine}>
-                        • {d.display || `${d.date} ${d.title}`.trim()}
-                      </Text>
-                    ))}
-                    <Divider style={{ marginTop: 8 }} />
-                  </View>
-                )}
                 <Text style={sx.label}>ชื่อ</Text>
                 <TextInput
                   mode="outlined"
@@ -272,13 +262,16 @@ export default function SalarySlipFormModal({
                   </View>
                 </View>
                 <Text style={sx.label}>รายละเอียด</Text>
-                <TextInput
-                  mode="outlined"
-                  value={details}
-                  editable={false}
-                  style={[sx.input, sx.textarea, sx.inputRead]}
-                  multiline
-                />
+                {Array.isArray(previewDetails) && previewDetails.length > 0 && (
+                  <View style={{ marginBottom: 8 }}>
+                    {previewDetails.map((d, i) => (
+                      <Text key={`${d.taskId}-${i}`} style={sx.detailLine}>
+                        • {d.display || `${d.date} ${d.title}`.trim()}
+                      </Text>
+                    ))}
+                    <Divider style={{ marginTop: 8 }} />
+                  </View>
+                )}
                 <Text style={sx.label}>จำนวนเงิน</Text>
                 <TextInput
                   mode="outlined"

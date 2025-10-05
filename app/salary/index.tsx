@@ -176,12 +176,8 @@ export default function SalaryScreen() {
 
       mapped.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
       setRows(mapped);
-
-      const latestYM = mapped.find((x) => !!x.month)?.month || ymNow();
-      setPreferredMonth(latestYM);
     } catch (err) {
       setRows([]);
-      setPreferredMonth(ymNow());
       console.warn("listPayrollsService error:", err);
     } finally {
       setRefreshing(false);
@@ -215,9 +211,10 @@ export default function SalaryScreen() {
     }
     try {
       setPreviewLoading(true);
-      const month = preferredMonth || ymNow();
+      const month = ymNow();
 
       const { data } = await previewService({ userId, month });
+      console.log("data ===>", data);
 
       const detailsText = Array.isArray(data?.details)
         ? data.details
@@ -428,7 +425,7 @@ export default function SalaryScreen() {
       item.date
     )}</div>
     </div>
-    <div class="badge">${escapeHtml(status)}</div>
+    <div class="badge">${escapeHtml(status === 'Paid' ? "ชำระแล้ว" : "ยังไม่ชำระ")}</div>
   </div>
 
   <table>
@@ -711,12 +708,12 @@ export default function SalaryScreen() {
                 />
 
                 {/* ดาวน์โหลด */}
-                <IconButton
+                {/* <IconButton
                   icon="download"
                   onPress={() => handleDownload(item)}
                   disabled={downloadingId === item.id || sharingId === item.id}
                   accessibilityLabel="ดาวน์โหลดใบแจ้งเงินเดือน"
-                />
+                /> */}
 
                 {/* ลบ (เฉพาะ Unpaid) */}
                 {!item.paid_amount && (

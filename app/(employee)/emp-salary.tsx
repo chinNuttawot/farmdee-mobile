@@ -393,18 +393,19 @@ export default function Tasks() {
           const areaCell =
             d.workerPayType === "per_rai" ? money(num(d.area)) : "-";
           const rateCell =
-            d.workerPayType === "per_rai"
-              ? money(num(d.ratePerRai))
-              : d.jobType === "งานซ่อม"
+            d.jobType === "งานซ่อม"
               ? money(num(d.repairRate))
+              : d.workerPayType === "per_rai"
+              ? money(num(d.ratePerRai))
               : d.workerPayType === "daily"
               ? money(num(d.dailyRate))
               : "-";
+
           const rateLabel =
-            d.workerPayType === "per_rai"
-              ? "ค่า/ไร่"
-              : d.jobType === "งานซ่อม"
+            d.jobType === "งานซ่อม"
               ? "ค่าซ่อม"
+              : d.workerPayType === "per_rai"
+              ? "ค่าแรง/ไร่"
               : d.workerPayType === "daily"
               ? "รายวัน"
               : "อัตรา";
