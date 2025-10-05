@@ -4,6 +4,7 @@ import { Chip } from "react-native-paper";
 import { styles } from "@/styles/ui";
 import { StatusType } from "@/lib/types";
 import { STATUS_COLORS } from "@/lib/constants";
+import { TH_Status } from "./TaskCard";
 
 type Props = {
   value: StatusType;
@@ -32,7 +33,7 @@ export default function StatusFilterChips({ value, onChange }: Props) {
             }
             icon={selected ? "check" : undefined}
           >
-            {s}
+            {TH_Status[s]}
           </Chip>
         );
       })}

@@ -1,9 +1,8 @@
 // components/Tasks/TaskCard.tsx
-import React, { useMemo } from "react";
-import { View } from "react-native";
+import React, { useMemo, useRef, useEffect } from "react";
+import { View, Animated, Easing } from "react-native";
 import {
   Card,
-  Avatar,
   Text,
   Chip,
   Badge,
@@ -11,6 +10,7 @@ import {
   ProgressBar,
   IconButton,
 } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Task, StatusType } from "../../lib/types";
 import { STATUS_COLORS } from "../../lib/constants";
 import { formatAPI } from "../../lib/date";
@@ -18,7 +18,7 @@ import { styles } from "../../styles/ui";
 
 type Props = {
   task: Task;
-  job_type?: Task;
+  job_type?: Task; // คงไว้ตามไฟล์เดิม
   onEdit?: (t: Task) => void;
   onDelete?: (t: Task) => void;
   onChangeStatus?: (t: Task, next: StatusType) => void;
@@ -31,6 +31,275 @@ const NEXT_STATUS: Record<Exclude<StatusType, "ทั้งหมด">, StatusTy
   Done: "Pending",
 };
 
+export const TH_Status: any = {
+  InProgress: "เริ่มทำ",
+  Pending: "กำลังมาถึง",
+  Done: "สำเร็จ",
+  ทั้งหมด: "ทั้งหมด",
+};
+
+const AVATAR_SIZE = 40;
+const ICON_SIZE = 26;
+
+/** LeftAvatar (ไอคอน + แอนิเมชันตามสถานะ):
+ * - Pending: truck-delivery (แกว่งนิดๆ + เฟด)
+ * - InProgress:
+ *    - งานซ่อม: wrench หมุน
+ *    - งานอื่น: tractor แกว่งซ้าย-ขวา + เอน
+ * - Done: check-circle เต้นจังหวะ (scale)
+ * - สถานะอื่น/ไม่ตรงเงื่อนไข: ใช้ใบไม้ (leaf) นิ่ง
+ */
+function LeftAvatar({
+  colorBg,
+  jobType,
+  status,
+}: {
+  colorBg: string;
+  jobType?: string | null;
+  status: StatusType;
+}) {
+  const jt = (jobType ?? "").trim();
+  const isRepair = jt === "งานซ่อม";
+  const isPending = status === "Pending";
+  const isInProgress = status === "InProgress";
+  const isDone = status === "Done";
+
+  // แยกแอนิเมชันเป็นตัวๆ ไป
+  const animTractor = useRef(new Animated.Value(0)).current; // แกว่ง/เอน
+  const animWrench = useRef(new Animated.Value(0)).current; // หมุน
+  const animTruck = useRef(new Animated.Value(0)).current; // วิ่ง/เฟด
+  const animCheck = useRef(new Animated.Value(0)).current; // scale
+
+  useEffect(() => {
+    let loopTractor: Animated.CompositeAnimation | null = null;
+    let loopWrench: Animated.CompositeAnimation | null = null;
+    let loopTruck: Animated.CompositeAnimation | null = null;
+    let loopCheck: Animated.CompositeAnimation | null = null;
+
+    // Tractor (เฉพาะ InProgress + ไม่ใช่งานซ่อม)
+    if (isInProgress && !isRepair) {
+      loopTractor = Animated.loop(
+        Animated.sequence([
+          Animated.timing(animTractor, {
+            toValue: 1,
+            duration: 700,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(animTractor, {
+            toValue: 0,
+            duration: 700,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loopTractor.start();
+    } else {
+      animTractor.stopAnimation();
+      animTractor.setValue(0);
+    }
+
+    // Wrench (เฉพาะ InProgress + งานซ่อม)
+    if (isInProgress && isRepair) {
+      loopWrench = Animated.loop(
+        Animated.timing(animWrench, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      loopWrench.start();
+    } else {
+      animWrench.stopAnimation();
+      animWrench.setValue(0);
+    }
+
+    // Truck (เฉพาะ Pending)
+    if (isPending) {
+      loopTruck = Animated.loop(
+        Animated.sequence([
+          Animated.timing(animTruck, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(animTruck, {
+            toValue: 0,
+            duration: 800,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loopTruck.start();
+    } else {
+      animTruck.stopAnimation();
+      animTruck.setValue(0);
+    }
+
+    // Check (เฉพาะ Done)
+    if (isDone) {
+      loopCheck = Animated.loop(
+        Animated.sequence([
+          Animated.timing(animCheck, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(animCheck, {
+            toValue: 0,
+            duration: 900,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loopCheck.start();
+    } else {
+      animCheck.stopAnimation();
+      animCheck.setValue(0);
+    }
+
+    return () => {
+      loopTractor?.stop?.();
+      loopWrench?.stop?.();
+      loopTruck?.stop?.();
+      loopCheck?.stop?.();
+    };
+  }, [
+    isInProgress,
+    isRepair,
+    isPending,
+    isDone,
+    animTractor,
+    animWrench,
+    animTruck,
+    animCheck,
+  ]);
+
+  // Tractor transforms
+  const translateXTractor = animTractor.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-3, 3],
+  });
+  const rotateTractor = animTractor.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["-4deg", "4deg"],
+  });
+
+  // Wrench rotation
+  const rotateWrench = animWrench.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
+  // Truck transforms (แกว่ง + เฟด)
+  const translateXTruck = animTruck.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-2, 2],
+  });
+  const opacityTruck = animTruck.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.8, 1],
+  });
+
+  // Check scale
+  const scaleCheck = animCheck.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.96, 1.04],
+  });
+
+  // เลือกว่าจะโชว์อะไร
+  const showTractor = isInProgress && !isRepair;
+  const showWrench = isInProgress && isRepair;
+  const showTruck = isPending;
+  const showCheck = isDone;
+
+  return (
+    <View
+      style={{
+        width: AVATAR_SIZE,
+        height: AVATAR_SIZE,
+        borderRadius: AVATAR_SIZE / 2,
+        backgroundColor: colorBg,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      {showTractor ? (
+        <Animated.View
+          style={{
+            transform: [
+              { translateX: translateXTractor },
+              { rotate: rotateTractor },
+            ],
+          }}
+          accessible
+          accessibilityLabel="กำลังทำงาน"
+        >
+          <MaterialCommunityIcons
+            name="tractor"
+            size={ICON_SIZE}
+            color="white"
+          />
+        </Animated.View>
+      ) : showWrench ? (
+        <Animated.View
+          style={{ transform: [{ rotate: rotateWrench }] }}
+          accessible
+          accessibilityLabel="กำลังซ่อม"
+        >
+          <MaterialCommunityIcons
+            name="wrench"
+            size={ICON_SIZE}
+            color="white"
+          />
+        </Animated.View>
+      ) : showTruck ? (
+        <Animated.View
+          style={{
+            transform: [{ translateX: translateXTruck }],
+            opacity: opacityTruck,
+          }}
+          accessible
+          accessibilityLabel="กำลังมาถึง"
+        >
+          <MaterialCommunityIcons
+            name="truck-delivery"
+            size={ICON_SIZE}
+            color="white"
+          />
+        </Animated.View>
+      ) : showCheck ? (
+        <Animated.View
+          style={{ transform: [{ scale: scaleCheck }] }}
+          accessible
+          accessibilityLabel="สำเร็จ"
+        >
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={ICON_SIZE}
+            color="white"
+          />
+        </Animated.View>
+      ) : (
+        <MaterialCommunityIcons
+          name="leaf"
+          size={ICON_SIZE}
+          color="white"
+          accessible
+          accessibilityLabel="งานไร่"
+        />
+      )}
+    </View>
+  );
+}
+
 export default function TaskCard({
   task,
   onEdit,
@@ -40,16 +309,6 @@ export default function TaskCard({
 }: Props) {
   const color = task.color || STATUS_COLORS[task.status];
 
-  const left = (props: any) => (
-    <Avatar.Icon
-      {...props}
-      icon={(task.jobType || task.job_type) === "งานซ่อม" ? "wrench" : "leaf"}
-      size={40}
-      color="white"
-      style={{ backgroundColor: color }}
-    />
-  );
-
   const right = () => (
     <View style={{ alignItems: "flex-end" }}>
       <Text style={styles.amountText}>
@@ -58,7 +317,7 @@ export default function TaskCard({
       <Badge
         style={[styles.badge, { backgroundColor: STATUS_COLORS[task.status] }]}
       >
-        {task.status}
+        {TH_Status[task.status]}
       </Badge>
     </View>
   );
@@ -76,6 +335,8 @@ export default function TaskCard({
     onChangeStatus?.(task, next);
   };
 
+  const jobType = (task as any).jobType ?? (task as any).job_type ?? null;
+
   return (
     <Card
       style={styles.taskCard}
@@ -87,7 +348,9 @@ export default function TaskCard({
       <Card.Title
         title={task.title}
         titleNumberOfLines={2}
-        left={left}
+        left={() => (
+          <LeftAvatar colorBg={color} jobType={jobType} status={task.status} />
+        )}
         right={right}
       />
 
@@ -98,9 +361,9 @@ export default function TaskCard({
           )}`}
         </Text>
 
-        {task.jobType ? (
+        {jobType ? (
           <Chip compact style={styles.tagChip}>
-            {task.jobType}
+            {jobType}
           </Chip>
         ) : null}
 
@@ -134,20 +397,22 @@ export default function TaskCard({
           paddingTop: 8,
         }}
       >
-        {/* เปลี่ยนสถานะ */}
-        <View
-          style={{
-            backgroundColor: (color || "#9CA3AF") + "33",
-            borderRadius: 12,
-          }}
-        >
-          <IconButton
-            icon="repeat"
-            size={18}
-            onPress={handleCycleStatus}
-            accessibilityLabel="เปลี่ยนสถานะ"
-          />
-        </View>
+        {/* เปลี่ยนสถานะ (โชว์เฉพาะตอน dev) */}
+        {__DEV__ && (
+          <View
+            style={{
+              backgroundColor: (color || "#9CA3AF") + "33",
+              borderRadius: 12,
+            }}
+          >
+            <IconButton
+              icon="repeat"
+              size={18}
+              onPress={handleCycleStatus}
+              accessibilityLabel="เปลี่ยนสถานะ"
+            />
+          </View>
+        )}
 
         {/* แก้ไข/ลบ */}
         {isEditable && (
