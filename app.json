@@ -24,11 +24,18 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.chin_sdc.workfinancemanager"
     },
     "web": {
       "bundler": "metro",
       "output": "single"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "15655b9a-daf4-49c5-b54d-f1f871678546"
+      }
     }
   }
 }
