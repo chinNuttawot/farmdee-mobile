@@ -88,7 +88,7 @@ export default function Tasks() {
   const handleAdd = async (exp: Omit<Expense, "id">) => {
     try {
       setSaving(true);
-      await expensesSaveService(exp);
+      const res = await expensesSaveService(exp);
     } finally {
       setSaving(false);
       load();

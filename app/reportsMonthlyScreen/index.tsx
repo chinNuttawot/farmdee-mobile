@@ -13,15 +13,15 @@ import {
 import {
   Card,
   Text,
-  Menu,
   Button,
   Divider,
   Snackbar,
   useTheme,
+  Portal,
+  Modal,
 } from "react-native-paper";
 import { ChevronDown } from "lucide-react-native";
 import { byMonthlyService } from "@/service";
-import { PRIMARY } from "../_layout";
 
 /** ========= Types ========= */
 type Item = { label: string; value: number; color?: string };
@@ -133,6 +133,75 @@ function Bullet({ color = "#16A34A" }: { color?: string }) {
   );
 }
 
+/** ========= Year Picker Modal ========= */
+function YearPickerModal({
+  visible,
+  value,
+  options,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  value: string;
+  options: string[];
+  onSelect: (y: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onClose}
+        contentContainerStyle={styles.yearModalContainer}
+      >
+        <Card style={styles.yearModalCard}>
+          <Card.Content>
+            <Text style={styles.yearModalTitle}>เลือกปีงบประมาณ (พ.ศ.)</Text>
+            <View style={{ height: 8 }} />
+
+            <View style={styles.yearGrid}>
+              {options.map((y) => {
+                const selected = y === value;
+                return (
+                  <TouchableOpacity
+                    key={y}
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      onSelect(y);
+                      onClose();
+                    }}
+                    style={[
+                      styles.yearCell,
+                      selected && {
+                        backgroundColor: "#E8F5E9",
+                        borderColor: "#A7D7B0",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.yearCellText,
+                        selected && { color: "#166534", fontWeight: "900" },
+                      ]}
+                    >
+                      {y}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={{ height: 12 }} />
+            <Button mode="text" onPress={onClose}>
+              ปิด
+            </Button>
+          </Card.Content>
+        </Card>
+      </Modal>
+    </Portal>
+  );
+}
+
 /** ========= Screen ========= */
 export default function ReportsMonthlyScreen() {
   const theme = useTheme();
@@ -148,7 +217,7 @@ export default function ReportsMonthlyScreen() {
 
   // UI
   const [yearBE, setYearBE] = useState(String(AD2BE(now.getFullYear())));
-  const [openYearMenu, setOpenYearMenu] = useState(false);
+  const [yearModalOpen, setYearModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
     visible: false,
@@ -233,343 +302,341 @@ export default function ReportsMonthlyScreen() {
 
   const yearOptionsBE = useMemo(() => {
     const y = AD2BE(now.getFullYear());
+    // เรียงให้ปีปัจจุบันมาก่อน แล้วค่อยย้อนหลัง/ล่วงหน้า
     return [y, y - 1, y - 2, y + 1].map(String);
   }, []);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#F6FAF7" }}>
-      {/* Header */}
-      <View style={styles.headerBand} />
+    <>
+      <ScrollView style={{ flex: 1, backgroundColor: "#F6FAF7" }}>
+        {/* Header */}
+        <View style={styles.headerBand} />
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        <Menu
-          visible={openYearMenu}
-          onDismiss={() => setOpenYearMenu(false)}
-          anchor={
-            <Button
-              mode="contained"
-              onPress={() => setOpenYearMenu(true)}
-              style={styles.yearBtn}
-              contentStyle={{ justifyContent: "space-between" }}
-            >
-              <View style={styles.yearBtnInner}>
-                <Text style={styles.yearText}>{yearBE}</Text>
-                <ChevronDown size={18} color="#0B3A1F" />
-              </View>
-            </Button>
-          }
-        >
-          {yearOptionsBE.map((y) => (
-            <Menu.Item
-              key={y}
-              onPress={() => {
-                setYearBE(y);
-                setOpenYearMenu(false);
-              }}
-              title={y}
-            />
-          ))}
-        </Menu>
+        {/* Controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setYearModalOpen(true)}
+            style={styles.yearBtn}
+          >
+            <View style={styles.yearBtnInner}>
+              <Text style={styles.yearText}>{yearBE}</Text>
+              <ChevronDown size={18} color="#0B3A1F" />
+            </View>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setOpenAll(!allOpen)}
-          activeOpacity={0.9}
-          style={styles.toggleAll}
-          disabled={!blocks.length}
-        >
-          <Text style={styles.toggleAllText}>
-            {allOpen ? "ซ่อนทั้งหมด" : "แสดงทั้งหมด"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Loading */}
-      {loading && (
-        <View style={{ paddingVertical: 18 }}>
-          <ActivityIndicator />
+          <TouchableOpacity
+            onPress={() => setOpenAll(!allOpen)}
+            activeOpacity={0.9}
+            style={styles.toggleAll}
+            disabled={!blocks.length}
+          >
+            <Text style={styles.toggleAllText}>
+              {allOpen ? "ซ่อนทั้งหมด" : "แสดงทั้งหมด"}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
 
-      {/* Empty */}
-      {!loading && blocks.length === 0 && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <Card style={[styles.card, styles.shadow]}>
-            <Card.Content>
-              <Text style={{ opacity: 0.6 }}>ไม่พบข้อมูลปี {yearBE}</Text>
-            </Card.Content>
-          </Card>
-        </View>
-      )}
+        {/* Loading */}
+        {loading && (
+          <View style={{ paddingVertical: 18 }}>
+            <ActivityIndicator />
+          </View>
+        )}
 
-      {/* ===== Main card (focus month) ===== */}
-      {!!selected && (
-        <View style={{ paddingHorizontal: 16 }}>
-          <Card style={[styles.card, styles.shadow]}>
-            <Card.Content>
-              {/* Header row */}
-              <View style={styles.rowBetween}>
-                <View style={styles.leftHeader}>
-                  <Chip text={selected.monthLabel} />
-                  <Chip
-                    text={`${selected.incomeCount} รายการรับ • ${selected.expenseCount} รายการจ่าย`}
-                    bg="#E8F0FE"
-                    color="#1E40AF"
-                  />
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.gray12}>รายรับ</Text>
-                  <NumText>{money(incomeTotal)}</NumText>
-                  <Text style={[styles.gray12, { marginTop: 6 }]}>รายจ่าย</Text>
-                  <NumText color="#B91C1C">{money(expenseTotal)}</NumText>
-                </View>
-              </View>
-
-              {/* Toggle details */}
-              <TouchableOpacity
-                onPress={() => {
-                  animate();
-                  const nv = !openMain;
-                  setOpenMain(nv);
-                  if (!nv) setAllOpen(false);
-                }}
-                activeOpacity={0.8}
-                style={styles.showHideBtn}
-              >
-                <Text style={styles.showHideText}>
-                  {openMain ? "ซ่อนรายละเอียด" : "แสดงรายละเอียด"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Details */}
-              {openMain && (
-                <>
-                  {/* Stat boxes */}
-                  <View style={styles.statRow}>
-                    <StatBox
-                      title="รายรับ"
-                      value={money(incomeTotal)}
-                      count={selected.incomeCount}
-                      variant="income"
-                    />
-                    <StatBox
-                      title="รายจ่าย"
-                      value={money(expenseTotal)}
-                      count={selected.expenseCount}
-                      variant="expense"
-                    />
-                  </View>
-
-                  {/* Two columns */}
-                  <View style={styles.columns}>
-                    {/* Income list */}
-                    <View style={styles.listCard}>
-                      <View style={styles.listHead}>
-                        <Text style={styles.listTitle}>รายการรับ</Text>
-                        <Text style={styles.listCount}>
-                          {selected.incomeCount} รายการ
-                        </Text>
-                      </View>
-                      <Divider />
-                      {selected.incomeCount === 0 ? (
-                        <Text style={styles.emptyText}>ไม่มีรายการ</Text>
-                      ) : (
-                        selected.incomeItems.map((it, idx) => (
-                          <View key={idx} style={styles.rowItem}>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flex: 1,
-                                paddingRight: 8,
-                              }}
-                            >
-                              <Bullet color={it.color ?? "#16A34A"} />
-                              <Text style={styles.itemLabel}>{it.label}</Text>
-                            </View>
-                            <NumText size={15}>{money(it.value)}</NumText>
-                          </View>
-                        ))
-                      )}
-                      <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>รวมรายรับ</Text>
-                        <NumText>{money(incomeTotal)}</NumText>
-                      </View>
-                    </View>
-
-                    {/* Expense list */}
-                    <View style={styles.listCard}>
-                      <View style={styles.listHead}>
-                        <Text style={styles.listTitle}>รายการจ่าย</Text>
-                        <Text style={styles.listCount}>
-                          {selected.expenseCount} รายการ
-                        </Text>
-                      </View>
-                      <Divider />
-                      {selected.expenseCount === 0 ? (
-                        <Text style={styles.emptyText}>ไม่มีรายการ</Text>
-                      ) : (
-                        selected.expenseItems.map((it, idx) => (
-                          <View key={idx} style={styles.rowItem}>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flex: 1,
-                                paddingRight: 8,
-                              }}
-                            >
-                              <Bullet color={it.color ?? "#DC2626"} />
-                              <Text style={styles.itemLabel}>{it.label}</Text>
-                            </View>
-                            <NumText size={15}>{money(it.value)}</NumText>
-                          </View>
-                        ))
-                      )}
-                      <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>รวมรายจ่าย</Text>
-                        <NumText>{money(expenseTotal)}</NumText>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Profit bar */}
-                  <View style={styles.profitBar}>
-                    <Text style={styles.profitLeft}>
-                      กำไรสุทธิ เดือน {selected.monthLabel}
-                    </Text>
-                    <NumText color={profit >= 0 ? "#166534" : "#B91C1C"}>
-                      {money(profit)}
-                    </NumText>
-                  </View>
-                </>
-              )}
-            </Card.Content>
-          </Card>
-        </View>
-      )}
-
-      {/* ===== Other months (compact) ===== */}
-      {blocks.map((b, idx) => {
-        if (idx === selectedIndex) return null;
-        const opened = !!openMonth[idx];
-
-        return (
-          <View key={idx} style={{ paddingHorizontal: 16 }}>
-            <Card style={[styles.compactCard, styles.shadow]}>
-              <TouchableOpacity
-                style={{ paddingVertical: 10 }}
-                activeOpacity={0.9}
-                onPress={() => {
-                  animate();
-                  const nv = !opened;
-                  setOpenMonth((p) => ({ ...p, [idx]: nv }));
-                  if (!nv) setAllOpen(false);
-                }}
-              >
-                <Card.Content>
-                  <View style={styles.rowBetween}>
-                    <View style={styles.leftHeader}>
-                      <Chip text={b.monthLabel} />
-                      <Chip
-                        text={`${b.incomeCount} รับ • ${b.expenseCount} จ่าย`}
-                        bg="#E8F0FE"
-                        color="#1E40AF"
-                      />
-                    </View>
-                    <View style={{ alignItems: "flex-end" }}>
-                      <Text style={styles.gray12}>รายรับ</Text>
-                      <NumText>{money(b.incomeTotal)}</NumText>
-                      <Text style={[styles.gray12, { marginTop: 6 }]}>
-                        รายจ่าย
-                      </Text>
-                      <NumText color="#B91C1C">{money(b.expenseTotal)}</NumText>
-                    </View>
-                  </View>
-                </Card.Content>
-              </TouchableOpacity>
-
-              {opened && (
-                <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-                  <View style={[styles.statRow, { marginTop: 0 }]}>
-                    <StatBox
-                      title="รายรับ"
-                      value={money(b.incomeTotal)}
-                      count={b.incomeCount}
-                      variant="income"
-                    />
-                    <StatBox
-                      title="รายจ่าย"
-                      value={money(b.expenseTotal)}
-                      count={b.expenseCount}
-                      variant="expense"
-                    />
-                  </View>
-
-                  <View style={[styles.columns, { marginTop: 6 }]}>
-                    <View style={styles.listCardMini}>
-                      <Text style={styles.listTitle}>รายการรับ</Text>
-                      <Divider />
-                      {b.incomeCount === 0 ? (
-                        <Text style={styles.emptyText}>ไม่มีรายการ</Text>
-                      ) : (
-                        b.incomeItems.map((it, k) => (
-                          <View key={k} style={styles.rowItem}>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flex: 1,
-                                paddingRight: 8,
-                              }}
-                            >
-                              <Bullet color={it.color ?? "#16A34A"} />
-                              <Text style={styles.itemLabel}>{it.label}</Text>
-                            </View>
-                            <NumText size={15}>{money(it.value)}</NumText>
-                          </View>
-                        ))
-                      )}
-                    </View>
-
-                    <View style={styles.listCardMini}>
-                      <Text style={styles.listTitle}>รายการจ่าย</Text>
-                      <Divider />
-                      {b.expenseCount === 0 ? (
-                        <Text style={styles.emptyText}>ไม่มีรายการ</Text>
-                      ) : (
-                        b.expenseItems.map((it, k) => (
-                          <View key={k} style={styles.rowItem}>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flex: 1,
-                                paddingRight: 8,
-                              }}
-                            >
-                              <Bullet color={it.color ?? "#DC2626"} />
-                              <Text style={styles.itemLabel}>{it.label}</Text>
-                            </View>
-                            <NumText size={15}>{money(it.value)}</NumText>
-                          </View>
-                        ))
-                      )}
-                    </View>
-                  </View>
-                </View>
-              )}
+        {/* Empty */}
+        {!loading && blocks.length === 0 && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <Card style={[styles.card, styles.shadow]}>
+              <Card.Content>
+                <Text style={{ opacity: 0.6 }}>ไม่พบข้อมูลปี {yearBE}</Text>
+              </Card.Content>
             </Card>
           </View>
-        );
-      })}
+        )}
 
-      <View style={{ height: 22 }} />
+        {/* ===== Main card (focus month) ===== */}
+        {!!selected && (
+          <View style={{ paddingHorizontal: 16 }}>
+            <Card style={[styles.card, styles.shadow]}>
+              <Card.Content>
+                {/* Header row */}
+                <View style={styles.rowBetween}>
+                  <View style={styles.leftHeader}>
+                    <Chip text={selected.monthLabel} />
+                    <Chip
+                      text={`${selected.incomeCount} รายการรับ • ${selected.expenseCount} รายการจ่าย`}
+                      bg="#E8F0FE"
+                      color="#1E40AF"
+                    />
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={styles.gray12}>รายรับ</Text>
+                    <NumText>{money(incomeTotal)}</NumText>
+                    <Text style={[styles.gray12, { marginTop: 6 }]}>
+                      รายจ่าย
+                    </Text>
+                    <NumText color="#B91C1C">{money(expenseTotal)}</NumText>
+                  </View>
+                </View>
 
-      <Snackbar
-        visible={snack.visible}
-        onDismiss={() => setSnack({ visible: false, msg: "" })}
-        duration={2200}
-      >
-        {snack.msg}
-      </Snackbar>
-    </ScrollView>
+                {/* Toggle details */}
+                <TouchableOpacity
+                  onPress={() => {
+                    animate();
+                    const nv = !openMain;
+                    setOpenMain(nv);
+                    if (!nv) setAllOpen(false);
+                  }}
+                  activeOpacity={0.8}
+                  style={styles.showHideBtn}
+                >
+                  <Text style={styles.showHideText}>
+                    {openMain ? "ซ่อนรายละเอียด" : "แสดงรายละเอียด"}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Details */}
+                {openMain && (
+                  <>
+                    {/* Stat boxes */}
+                    <View style={styles.statRow}>
+                      <StatBox
+                        title="รายรับ"
+                        value={money(incomeTotal)}
+                        count={selected.incomeCount}
+                        variant="income"
+                      />
+                      <StatBox
+                        title="รายจ่าย"
+                        value={money(expenseTotal)}
+                        count={selected.expenseCount}
+                        variant="expense"
+                      />
+                    </View>
+
+                    {/* Two columns */}
+                    <View style={styles.columns}>
+                      {/* Income list */}
+                      <View style={styles.listCard}>
+                        <View style={styles.listHead}>
+                          <Text style={styles.listTitle}>รายการรับ</Text>
+                          <Text style={styles.listCount}>
+                            {selected.incomeCount} รายการ
+                          </Text>
+                        </View>
+                        <Divider />
+                        {selected.incomeCount === 0 ? (
+                          <Text style={styles.emptyText}>ไม่มีรายการ</Text>
+                        ) : (
+                          selected.incomeItems.map((it, idx) => (
+                            <View key={idx} style={styles.rowItem}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  flex: 1,
+                                  paddingRight: 8,
+                                }}
+                              >
+                                <Bullet color={it.color ?? "#16A34A"} />
+                                <Text style={styles.itemLabel}>{it.label}</Text>
+                              </View>
+                              <NumText size={15}>{money(it.value)}</NumText>
+                            </View>
+                          ))
+                        )}
+                        <View style={styles.totalRow}>
+                          <Text style={styles.totalLabel}>รวมรายรับ</Text>
+                          <NumText>{money(incomeTotal)}</NumText>
+                        </View>
+                      </View>
+
+                      {/* Expense list */}
+                      <View style={styles.listCard}>
+                        <View style={styles.listHead}>
+                          <Text style={styles.listTitle}>รายการจ่าย</Text>
+                          <Text style={styles.listCount}>
+                            {selected.expenseCount} รายการ
+                          </Text>
+                        </View>
+                        <Divider />
+                        {selected.expenseCount === 0 ? (
+                          <Text style={styles.emptyText}>ไม่มีรายการ</Text>
+                        ) : (
+                          selected.expenseItems.map((it, idx) => (
+                            <View key={idx} style={styles.rowItem}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  flex: 1,
+                                  paddingRight: 8,
+                                }}
+                              >
+                                <Bullet color={it.color ?? "#DC2626"} />
+                                <Text style={styles.itemLabel}>{it.label}</Text>
+                              </View>
+                              <NumText size={15}>{money(it.value)}</NumText>
+                            </View>
+                          ))
+                        )}
+                        <View style={styles.totalRow}>
+                          <Text style={styles.totalLabel}>รวมรายจ่าย</Text>
+                          <NumText>{money(expenseTotal)}</NumText>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Profit bar */}
+                    <View style={styles.profitBar}>
+                      <Text style={styles.profitLeft}>
+                        กำไรสุทธิ เดือน {selected.monthLabel}
+                      </Text>
+                      <NumText color={profit >= 0 ? "#166534" : "#B91C1C"}>
+                        {money(profit)}
+                      </NumText>
+                    </View>
+                  </>
+                )}
+              </Card.Content>
+            </Card>
+          </View>
+        )}
+
+        {/* ===== Other months (compact) ===== */}
+        {blocks.map((b, idx) => {
+          if (idx === selectedIndex) return null;
+          const opened = !!openMonth[idx];
+
+          return (
+            <View key={idx} style={{ paddingHorizontal: 16 }}>
+              <Card style={[styles.compactCard, styles.shadow]}>
+                <TouchableOpacity
+                  style={{ paddingVertical: 10 }}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    animate();
+                    const nv = !opened;
+                    setOpenMonth((p) => ({ ...p, [idx]: nv }));
+                    if (!nv) setAllOpen(false);
+                  }}
+                >
+                  <Card.Content>
+                    <View style={styles.rowBetween}>
+                      <View style={styles.leftHeader}>
+                        <Chip text={b.monthLabel} />
+                        <Chip
+                          text={`${b.incomeCount} รับ • ${b.expenseCount} จ่าย`}
+                          bg="#E8F0FE"
+                          color="#1E40AF"
+                        />
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.gray12}>รายรับ</Text>
+                        <NumText>{money(b.incomeTotal)}</NumText>
+                        <Text style={[styles.gray12, { marginTop: 6 }]}>
+                          รายจ่าย
+                        </Text>
+                        <NumText color="#B91C1C">
+                          {money(b.expenseTotal)}
+                        </NumText>
+                      </View>
+                    </View>
+                  </Card.Content>
+                </TouchableOpacity>
+
+                {opened && (
+                  <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+                    <View style={[styles.statRow, { marginTop: 0 }]}>
+                      <StatBox
+                        title="รายรับ"
+                        value={money(b.incomeTotal)}
+                        count={b.incomeCount}
+                        variant="income"
+                      />
+                      <StatBox
+                        title="รายจ่าย"
+                        value={money(b.expenseTotal)}
+                        count={b.expenseCount}
+                        variant="expense"
+                      />
+                    </View>
+
+                    <View style={[styles.columns, { marginTop: 6 }]}>
+                      <View style={styles.listCardMini}>
+                        <Text style={styles.listTitle}>รายการรับ</Text>
+                        <Divider />
+                        {b.incomeCount === 0 ? (
+                          <Text style={styles.emptyText}>ไม่มีรายการ</Text>
+                        ) : (
+                          b.incomeItems.map((it, k) => (
+                            <View key={k} style={styles.rowItem}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  flex: 1,
+                                  paddingRight: 8,
+                                }}
+                              >
+                                <Bullet color={it.color ?? "#16A34A"} />
+                                <Text style={styles.itemLabel}>{it.label}</Text>
+                              </View>
+                              <NumText size={15}>{money(it.value)}</NumText>
+                            </View>
+                          ))
+                        )}
+                      </View>
+
+                      <View style={styles.listCardMini}>
+                        <Text style={styles.listTitle}>รายการจ่าย</Text>
+                        <Divider />
+                        {b.expenseCount === 0 ? (
+                          <Text style={styles.emptyText}>ไม่มีรายการ</Text>
+                        ) : (
+                          b.expenseItems.map((it, k) => (
+                            <View key={k} style={styles.rowItem}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  flex: 1,
+                                  paddingRight: 8,
+                                }}
+                              >
+                                <Bullet color={it.color ?? "#DC2626"} />
+                                <Text style={styles.itemLabel}>{it.label}</Text>
+                              </View>
+                              <NumText size={15}>{money(it.value)}</NumText>
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </Card>
+            </View>
+          );
+        })}
+
+        <View style={{ height: 22 }} />
+
+        <Snackbar
+          visible={snack.visible}
+          onDismiss={() => setSnack({ visible: false, msg: "" })}
+          duration={2200}
+        >
+          {snack.msg}
+        </Snackbar>
+      </ScrollView>
+
+      {/* ===== Year Picker (Modal) ===== */}
+      <YearPickerModal
+        visible={yearModalOpen}
+        value={yearBE}
+        options={yearOptionsBE}
+        onSelect={(y) => setYearBE(y)}
+        onClose={() => setYearModalOpen(false)}
+      />
+    </>
   );
 }
 
@@ -600,6 +667,8 @@ const styles = StyleSheet.create({
     width: 140,
     height: 42,
     elevation: 2,
+    justifyContent: "center",
+    paddingHorizontal: 14,
   },
   yearBtnInner: {
     flexDirection: "row",
@@ -740,4 +809,39 @@ const styles = StyleSheet.create({
     borderColor: "#DDEDDC",
   },
   profitLeft: { fontWeight: "900", color: "#111827" },
+
+  /** Year Picker Modal styles */
+  yearModalContainer: {
+    paddingHorizontal: 16,
+    justifyContent: "flex-end",
+  },
+  yearModalCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  yearModalTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#0B3A1F",
+  },
+  yearGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  yearCell: {
+    width: "23.5%",
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  yearCellText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0B3A1F",
+  },
 });

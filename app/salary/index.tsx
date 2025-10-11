@@ -132,6 +132,8 @@ export default function SalaryScreen() {
     setRefreshing(true);
     try {
       const { data } = await listPayrollsService({ userId });
+      console.log("data ===>", data);
+      
       const items = Array.isArray(data?.items) ? data.items : [];
 
       const mapped: SalarySlip[] = items.map((it: any) => {
@@ -214,8 +216,6 @@ export default function SalaryScreen() {
       const month = ymNow();
 
       const { data } = await previewService({ userId, month });
-      console.log("data ===>", data);
-
       const detailsText = Array.isArray(data?.details)
         ? data.details
             .map((x: any) => x?.display ?? "")

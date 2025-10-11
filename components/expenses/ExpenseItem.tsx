@@ -52,24 +52,26 @@ export default function ExpenseItem({
           </Text>
         )}
 
-        <View style={styles.actionRow}>
-          <IconButton
-            icon="pencil"
-            size={18}
-            onPress={() => onEdit?.(item)}
-            containerColor="#FFEDE0"
-            iconColor="#F57C00"
-            style={styles.actionBtn}
-          />
-          <IconButton
-            icon="trash-can"
-            size={18}
-            onPress={() => onDelete?.(item)}
-            containerColor="#FFE6E6"
-            iconColor="#D32F2F"
-            style={styles.actionBtn}
-          />
-        </View>
+        {item.type !== "labor" && (
+          <View style={styles.actionRow}>
+            <IconButton
+              icon="pencil"
+              size={18}
+              onPress={() => onEdit?.(item)}
+              containerColor="#FFEDE0"
+              iconColor="#F57C00"
+              style={styles.actionBtn}
+            />
+            <IconButton
+              icon="trash-can"
+              size={18}
+              onPress={() => onDelete?.(item)}
+              containerColor="#FFE6E6"
+              iconColor="#D32F2F"
+              style={styles.actionBtn}
+            />
+          </View>
+        )}
       </Card.Content>
     </Card>
   );

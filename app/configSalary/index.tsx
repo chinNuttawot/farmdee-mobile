@@ -184,6 +184,10 @@ export default function ConfigSalary() {
             selectionColor={GREEN}
             placeholder="0"
           />
+          <Text style={[sx.checkboxNote, { fontSize: 18, marginTop: 16 }]}>
+            * การตั้งค่าจำนวนเงินต่างๆ
+            ของพนักงานคนนี้จะมีผลในรอบใบงานที่สร้างใหม่เท่านั้น
+          </Text>
 
           {/* ปุ่มล่างกึ่งกลาง */}
           <View style={sx.footer}>

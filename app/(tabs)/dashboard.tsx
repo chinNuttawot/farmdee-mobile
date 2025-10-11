@@ -7,18 +7,19 @@ import {
   Portal,
   Modal,
   Text,
-  Button, // 👍 เพิ่มปุ่ม
+  Button,
 } from "react-native-paper";
 import Header from "../../components/Header";
 
 import { styles } from "../../styles/ui";
 import { STATUS_COLORS } from "../../lib/constants";
-import { inRange, formatAPI, startOfDay } from "../../lib/date";
+import { formatAPI, startOfDay } from "../../lib/date";
 import { Task, StatusType } from "../../lib/types";
 
 import MiniCalendar from "../../components/Calendar/MiniCalendar";
 import TaskCard from "../../components/Tasks/TaskCard";
 import CreateTaskModal from "../../components/Tasks/CreateTaskModal";
+import TaskDetailModal from "../../components/Tasks/TaskDetailModal"; // ✅ ใช้คอมโพเนนต์แยก
 
 // components ย่อย
 import StatusFilterChips from "../../components/Tasks/StatusFilterChips";
@@ -72,6 +73,10 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingTask, setDeletingTask] = useState<TaskWithMeta | null>(null);
 
+  // ======= ดูรายละเอียด (ใช้คอมโพเนนต์แยก) =======
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailTask, setDetailTask] = useState<TaskWithMeta | null>(null);
+
   useEffect(() => {
     getData();
   }, [selectedDate, status, search]);
@@ -97,6 +102,7 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   };
+
   const toMoney = (n: number) => n.toFixed(2);
 
   const splitRatesPerAssignee = (task: TaskPayload): TaskPayload => {
@@ -224,10 +230,11 @@ export default function Dashboard() {
               key={t.id}
               task={t}
               onPress={(tk) => {
+                setDetailTask(tk as TaskWithMeta);
+                setDetailOpen(true);
                 console.log("open detail:", tk.id);
               }}
               onEdit={(tk) => openEditMode(tk as TaskWithMeta)}
-              // ❗️เปลี่ยนจากลบทันที → เปิดป๊อปอัปยืนยัน
               onDelete={(tk) => requestDelete(tk as TaskWithMeta)}
               onChangeStatus={(tk, next) =>
                 setTasks((prev) =>
@@ -251,7 +258,7 @@ export default function Dashboard() {
         size="medium"
         color="white"
         customSize={56}
-        disabled={isLoading || isSaving} // ปิดตอนกำลังโหลด/บันทึก
+        disabled={isLoading || isSaving}
       />
 
       {/* โมดัลสร้าง/แก้ไข */}
@@ -297,7 +304,7 @@ export default function Dashboard() {
         </Modal>
       </Portal>
 
-      {/* ======= ป๊อปอัปยืนยันการลบ (ตาม UI) ======= */}
+      {/* ======= ป๊อปอัปยืนยันการลบ ======= */}
       <Portal>
         <Modal
           visible={confirmOpen}
@@ -361,7 +368,7 @@ export default function Dashboard() {
                 style={{
                   flex: 1,
                   borderRadius: 16,
-                  backgroundColor: "#EF4444", // แดงตาม UI
+                  backgroundColor: "#EF4444",
                 }}
               >
                 ตกลง
@@ -370,6 +377,24 @@ export default function Dashboard() {
           </View>
         </Modal>
       </Portal>
+
+      {/* ======= โมดัลรายละเอียดงาน (ใช้คอมโพเนนต์แยก) ======= */}
+      <TaskDetailModal
+        open={detailOpen}
+        task={detailTask}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailTask(null);
+        }}
+        onEdit={(t) => {
+          setDetailOpen(false);
+          openEditMode(t);
+        }}
+        onDelete={(t) => {
+          setDetailOpen(false);
+          requestDelete(t);
+        }}
+      />
     </>
   );
 }

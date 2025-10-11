@@ -6,6 +6,8 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  Keyboard,
+  StatusBar,
 } from "react-native";
 import {
   Button,
@@ -21,6 +23,30 @@ import { styles } from "@/styles/ui";
 import { Expense, ExpenseType, typeMeta } from "./typeMeta";
 import SingleDatePickerModal from "../Calendar/SingleDatePickerModal";
 import { formatAPI } from "@/lib/date";
+
+/** ================= Keyboard helpers (เหมือน CreateTaskModal) ================= */
+function useKeyboardSpace() {
+  const [space, setSpace] = useState(0);
+
+  useEffect(() => {
+    const showEvt =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const onShow = (e: any) => setSpace(e?.endCoordinates?.height ?? 0);
+    const onHide = () => setSpace(0);
+
+    const s1 = Keyboard.addListener(showEvt, onShow);
+    const s2 = Keyboard.addListener(hideEvt, onHide);
+    return () => {
+      s1.remove();
+      s2.remove();
+    };
+  }, []);
+
+  return space;
+}
 
 type Props = {
   visible: boolean;
@@ -39,7 +65,7 @@ export default function AddExpenseDialog({
 }: Props) {
   // form state
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<ExpenseType>("labor");
+  const [type, setType] = useState<ExpenseType>("fuel");
   const [jobNote, setJobNote] = useState("");
   const [qtyNote, setQtyNote] = useState("");
   const [workDate, setWorkDate] = useState(""); // YYYY-MM-DD
@@ -50,18 +76,25 @@ export default function AddExpenseDialog({
 
   const isEdit = !!initial;
 
+  // ===== keyboard spacing & offset (กันบังอินพุตตอนพิมพ์) =====
+  const keyboardSpace = useKeyboardSpace();
+  const keyboardVerticalOffset =
+    Platform.OS === "ios" ? (StatusBar.currentHeight ?? 0) + 12 : 0;
+
   // prefill เมื่อเปิด modal
   useEffect(() => {
     if (!visible) return;
 
     if (initial) {
       setTitle(initial.title ?? "");
-      setType(initial.type ?? "labor");
-      setJobNote(initial.job_note ?? "");
-      setQtyNote(initial.qty_note ?? "");
+      setType(initial.type ?? "fuel");
+      // รองรับทั้ง snake/camel (ตามโค้ดเดิม)
+      setJobNote((initial as any).job_note ?? (initial as any).jobNote ?? "");
+      setQtyNote((initial as any).qty_note ?? (initial as any).qtyNote ?? "");
 
       // รองรับทั้ง ISO และ YYYY-MM-DD
-      const rawDate = initial.work_date ?? "";
+      const rawDate =
+        (initial as any).work_date ?? (initial as any).workDate ?? "";
       const normalized =
         typeof rawDate === "string"
           ? rawDate.includes("T")
@@ -71,11 +104,15 @@ export default function AddExpenseDialog({
       setWorkDate(normalized);
 
       setAmount(
-        typeof initial.amount === "number" ? String(initial.amount) : ""
+        typeof (initial as any).amount === "number"
+          ? String((initial as any).amount)
+          : (initial as any).total_amount
+          ? String((initial as any).total_amount)
+          : ""
       );
     } else {
       setTitle("");
-      setType("labor");
+      setType("fuel");
       setJobNote("");
       setQtyNote("");
       setWorkDate(""); // ให้ผู้ใช้เลือกจากปฏิทิน
@@ -139,8 +176,10 @@ export default function AddExpenseDialog({
   return (
     <Portal>
       <Modal visible={visible} contentContainerStyle={styles.assigneeModal}>
+        {/* ✅ ป้องกันคีย์บอร์ดบัง: ใช้ทั้ง KeyboardAvoidingView + bottom spacer */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={keyboardVerticalOffset}
         >
           <Text style={styles.dialogTitleV2}>
             {isEdit ? "แก้ไขรายการค่าใช้จ่าย" : "เพิ่มค่าใช้จ่าย"}
@@ -148,7 +187,10 @@ export default function AddExpenseDialog({
 
           <ScrollView
             style={{ maxHeight: 520 }}
-            contentContainerStyle={styles.dialogContentV2}
+            contentContainerStyle={[
+              styles.dialogContentV2,
+              { paddingBottom: 24 + keyboardSpace },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -161,11 +203,14 @@ export default function AddExpenseDialog({
               style={styles.inputOutlined}
               left={<TextInput.Icon icon="clipboard-text-outline" />}
               dense
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
 
             <Text style={styles.fieldLabelV2}>ประเภท</Text>
             <View style={styles.segmentWrapV2}>
-              {(["labor", "fuel", "material"] as ExpenseType[]).map((t) => {
+              {/* {(["labor", "fuel", "material"] as ExpenseType[]).map((t) => { */}
+              {(["fuel", "material"] as ExpenseType[]).map((t) => {
                 const selected = type === t;
                 return (
                   <Chip
@@ -203,6 +248,8 @@ export default function AddExpenseDialog({
               style={styles.inputOutlined}
               left={<TextInput.Icon icon="note-text-outline" />}
               dense
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
 
             <Text style={styles.fieldLabelV2}>จำนวน/หน่วย</Text>
@@ -214,6 +261,8 @@ export default function AddExpenseDialog({
               style={styles.inputOutlined}
               left={<TextInput.Icon icon="format-list-numbered" />}
               dense
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
 
             <Text style={styles.fieldLabelV2}>วันที่ทำงาน</Text>
@@ -234,7 +283,7 @@ export default function AddExpenseDialog({
                 <Text
                   numberOfLines={1}
                   style={{
-                    color: workDate?.trim() ? "#111827" : "#9CA3AF", // ถ้ายังไม่เลือก -> สีจาง
+                    color: workDate?.trim() ? "#111827" : "#9CA3AF",
                     fontSize: 16,
                     fontWeight: workDate?.trim() ? "600" : "400",
                   }}
@@ -255,8 +304,10 @@ export default function AddExpenseDialog({
               left={<TextInput.Icon icon="cash" />}
               right={<TextInput.Affix text="฿" />}
               dense
-              onSubmitEditing={submit}
+              // 🔻 ตัด auto-submit ตอนกด Done/Enter ออก
+              // onSubmitEditing={submit}
               returnKeyType="done"
+              blurOnSubmit={true}
             />
           </ScrollView>
 
@@ -275,7 +326,7 @@ export default function AddExpenseDialog({
           </View>
         </KeyboardAvoidingView>
 
-        {/* ✅ Date Picker (เหมือน code 1) */}
+        {/* ✅ Date Picker */}
         <SingleDatePickerModal
           open={dateOpen}
           onClose={() => setDateOpen(false)}

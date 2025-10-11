@@ -95,6 +95,11 @@ export default function SalarySlipFormModal({
   previewSummary,
   previewDetails,
 }: Props) {
+
+  console.log("initialValues ===>", initialValues);
+  console.log("previewSummary ===>", previewSummary);
+  console.log("previewDetails ===>", previewDetails);
+  
   const [employeeName, setEmployeeName] = useState(defaultEmployeeName);
   const [month, setMonth] = useState(defaultMonth);
   const [days, setDays] = useState<string>("0");
