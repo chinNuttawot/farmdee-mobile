@@ -29,6 +29,7 @@ import { tasksDeleteService } from "./tasksDeleteService/lindex";
 import { tasksSaveService } from "./tasksSaveService/lindex";
 import { tasksService } from "./tasksService/lindex";
 import { tasksUpdateService } from "./tasksUpdateService/lindex";
+import { tasksUpdateStatusService } from "./tasksUpdateStatusService/lindex";
 import { userConfigSalaryService } from "./userConfigSalaryService/lindex";
 import { userService } from "./userService/lindex";
 
@@ -65,5 +66,6 @@ export {
   GetEvaluationbyIDService,
   SaveScoresService,
   SubmitEvaluationService,
-  DeleteEvaluationService
+  DeleteEvaluationService,
+  tasksUpdateStatusService,
 };

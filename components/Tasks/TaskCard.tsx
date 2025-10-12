@@ -398,21 +398,19 @@ export default function TaskCard({
         }}
       >
         {/* เปลี่ยนสถานะ (โชว์เฉพาะตอน dev) */}
-        {__DEV__ && (
-          <View
-            style={{
-              backgroundColor: (color || "#9CA3AF") + "33",
-              borderRadius: 12,
-            }}
-          >
-            <IconButton
-              icon="repeat"
-              size={18}
-              onPress={handleCycleStatus}
-              accessibilityLabel="เปลี่ยนสถานะ"
-            />
-          </View>
-        )}
+        <View
+          style={{
+            backgroundColor: (color || "#9CA3AF") + "33",
+            borderRadius: 12,
+          }}
+        >
+          <IconButton
+            icon="repeat"
+            size={18}
+            onPress={handleCycleStatus}
+            accessibilityLabel="เปลี่ยนสถานะ"
+          />
+        </View>
 
         {/* แก้ไข/ลบ */}
         {isEditable && (

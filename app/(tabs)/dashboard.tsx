@@ -31,6 +31,7 @@ import {
   tasksSaveService,
   tasksService,
   tasksUpdateService,
+  tasksUpdateStatusService,
 } from "@/service/index";
 
 // ✅ ขยายชนิด task ฝั่งแอปให้เก็บเมตาได้
@@ -197,6 +198,23 @@ export default function Dashboard() {
     setDeletingTask(null);
   };
 
+  const updateStatusTask = async ({
+    id,
+    status,
+    color,
+  }: {
+    id: string;
+    status: string;
+    color: string;
+  }) => {
+    try {
+      await tasksUpdateStatusService({
+        id,
+        status,
+        color,
+      });
+    } catch (err) {}
+  };
   return (
     <>
       <Header title="งานของฉัน" backgroundColor="#2E7D32" color="white" />
@@ -236,15 +254,20 @@ export default function Dashboard() {
               }}
               onEdit={(tk) => openEditMode(tk as TaskWithMeta)}
               onDelete={(tk) => requestDelete(tk as TaskWithMeta)}
-              onChangeStatus={(tk, next) =>
+              onChangeStatus={(tk, next) => {
+                updateStatusTask({
+                  id: tk.id,
+                  status: next,
+                  color: STATUS_COLORS[next],
+                });
                 setTasks((prev) =>
                   prev.map((x) =>
                     x.id === tk.id
                       ? { ...x, status: next, color: STATUS_COLORS[next] }
                       : x
                   )
-                )
-              }
+                );
+              }}
             />
           ))}
           {filtered.length === 0 && !isLoading && <TaskEmptyCard />}

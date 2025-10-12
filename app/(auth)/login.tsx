@@ -28,8 +28,8 @@ export default function Login() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [username, setUsername] = useState(__DEV__ ? "boss1" : "");
-  const [password, setPassword] = useState(__DEV__ ? "Passw0rd!" : "");
+  const [username, setUsername] = useState(__DEV__ ? "Mai12345" : "");
+  const [password, setPassword] = useState(__DEV__ ? "M12345" : "");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
