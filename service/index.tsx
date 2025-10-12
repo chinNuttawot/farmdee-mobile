@@ -25,6 +25,7 @@ import { Profile } from "./profileService/lindex";
 import { ruleService } from "./ruleService/lindex";
 import { byMonthlyService } from "./summaryService/byMonthlyService/lindex";
 import { reportsService } from "./summaryService/reportsService/lindex";
+import { tasksDaysService } from "./tasksDaysService/lindex";
 import { tasksDeleteService } from "./tasksDeleteService/lindex";
 import { tasksSaveService } from "./tasksSaveService/lindex";
 import { tasksService } from "./tasksService/lindex";
@@ -68,4 +69,5 @@ export {
   SubmitEvaluationService,
   DeleteEvaluationService,
   tasksUpdateStatusService,
+  tasksDaysService,
 };

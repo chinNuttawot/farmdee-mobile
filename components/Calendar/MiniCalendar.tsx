@@ -1,5 +1,4 @@
-// components/Calendar/MiniCalendar.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { View, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import {
   Card,
@@ -14,7 +13,6 @@ import {
 } from "react-native-paper";
 import { monthMatrix, startOfDay, isSameDay } from "../../lib/date";
 
-// ========= ภาษาไทย =========
 export const TH_MONTHS = [
   "มกราคม",
   "กุมภาพันธ์",
@@ -31,24 +29,30 @@ export const TH_MONTHS = [
 ];
 export const TH_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
-// helper: ทำให้เป็น "เที่ยงวัน local" เพื่อกันวันเพี้ยนตอนแปลงเป็น UTC
 function toLocalNoon(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
 }
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const dateKey = (d: Date) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-// เพิ่มตัวเลือกใช้ปี พ.ศ. (ค่าเริ่มต้น = true)
+type MiniCalendarProps = {
+  value: Date;
+  onChange: (d: Date) => void;
+  useBuddhistYear?: boolean;
+  markedDates?: Set<string>;
+  onMonthChange?: (yearCE: number, month0: number) => void;
+};
+
 export default function MiniCalendar({
   value,
   onChange,
   useBuddhistYear = true,
-}: {
-  value: Date;
-  onChange: (d: Date) => void;
-  useBuddhistYear?: boolean;
-}) {
+  markedDates,
+  onMonthChange,
+}: MiniCalendarProps) {
   const theme = useTheme();
-
-  const [viewYear, setViewYear] = useState(value.getFullYear()); // เก็บเป็น ค.ศ.
+  const [viewYear, setViewYear] = useState(value.getFullYear());
   const [viewMonth0, setViewMonth0] = useState(value.getMonth());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
 
@@ -57,10 +61,12 @@ export default function MiniCalendar({
     [viewYear, viewMonth0]
   );
 
-  // today แบบ safe (เที่ยงวัน) เพื่อให้เทียบวันไม่โดน timezone แทรกแซง
   const today = toLocalNoon(new Date());
-
   const yDisplay = useBuddhistYear ? viewYear + 543 : viewYear;
+
+  useEffect(() => {
+    onMonthChange?.(viewYear, viewMonth0);
+  }, [viewYear, viewMonth0]);
 
   const gotoPrev = () => {
     const d = new Date(viewYear, viewMonth0 - 1, 1);
@@ -74,18 +80,11 @@ export default function MiniCalendar({
   };
 
   const selectDate = (d: Date) => {
-    // ทำให้เป็นเที่ยงวัน local แล้วค่อยยิงออกไป
     const normalizedLocalNoon = toLocalNoon(d);
-
-    // sync เดือน/ปีของมุมมองถ้ากดวันที่ข้ามเดือน/ปี
-    if (
-      d.getMonth() !== viewMonth0 ||
-      d.getFullYear() !== viewYear
-    ) {
+    if (d.getMonth() !== viewMonth0 || d.getFullYear() !== viewYear) {
       setViewMonth0(d.getMonth());
       setViewYear(d.getFullYear());
     }
-
     onChange(normalizedLocalNoon);
   };
 
@@ -95,7 +94,6 @@ export default function MiniCalendar({
         style={[s.calCard, { backgroundColor: theme.colors.surface }]}
         elevation={2}
       >
-        {/* Header */}
         <View style={s.calHeader}>
           <IconButton icon="chevron-left" size={18} onPress={gotoPrev} />
           <View style={s.calHeaderCenter}>
@@ -123,7 +121,6 @@ export default function MiniCalendar({
           <IconButton icon="chevron-right" size={18} onPress={gotoNext} />
         </View>
 
-        {/* Weekdays */}
         <View style={s.row7}>
           {TH_WEEKDAYS.map((d) => (
             <Text key={d} style={s.weekCell}>
@@ -132,13 +129,14 @@ export default function MiniCalendar({
           ))}
         </View>
 
-        {/* Grid */}
         <View style={s.grid7}>
           {cells.map(({ date, isCurrentMonth }, idx) => {
-            // เทียบวันที่แบบไม่โดน timezone: ใช้เที่ยงวันทั้งคู่
             const cellNoon = toLocalNoon(date);
             const isToday = isSameDay(cellNoon, today);
             const isSelected = isSameDay(cellNoon, toLocalNoon(value));
+            const key = dateKey(cellNoon);
+            const hasTask = !!markedDates?.has(key);
+
             return (
               <TouchableOpacity
                 key={idx}
@@ -163,6 +161,9 @@ export default function MiniCalendar({
                   >
                     {date.getDate()}
                   </Text>
+                  {hasTask && (
+                    <View style={[s.dot, isSelected && s.dotOnSelected]} />
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -170,7 +171,6 @@ export default function MiniCalendar({
         </View>
       </Card>
 
-      {/* Year picker modal (แสดงปีเป็น พ.ศ. แต่ตั้งค่าเป็น ค.ศ.) */}
       <Portal>
         <Modal
           visible={yearPickerOpen}
@@ -193,7 +193,7 @@ export default function MiniCalendar({
                     mode="text"
                     style={{ alignSelf: "flex-start" }}
                     onPress={() => {
-                      setViewYear(yCE); // เก็บเป็น ค.ศ.
+                      setViewYear(yCE);
                       setYearPickerOpen(false);
                     }}
                   >
@@ -212,7 +212,6 @@ export default function MiniCalendar({
   );
 }
 
-/** ===== Styles: 7 คอลัมน์เท่ากัน ===== */
 const GAP = 6;
 const COL_W = "14.2857%";
 
@@ -243,7 +242,6 @@ const s = StyleSheet.create({
   },
   yearChip: { borderRadius: 12, paddingHorizontal: 10 },
   yearChipText: { fontWeight: "700" },
-
   row7: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -258,7 +256,6 @@ const s = StyleSheet.create({
     fontSize: 11,
     opacity: 0.7,
   },
-
   grid7: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -272,22 +269,31 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   calCircle: {
     width: 30,
     height: 30,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   calCircleToday: { backgroundColor: "#DBEAFE" },
   calCircleSelected: { borderWidth: 2, borderColor: "#2563EB" },
-
   calDayText: { fontSize: 13, fontWeight: "600" },
   calDayMuted: { opacity: 0.35 },
   calDaySelectedText: { color: "#2563EB", fontWeight: "800" },
   calDayTodayText: { color: "#2563EB", fontWeight: "700" },
-
+  dot: {
+    position: "absolute",
+    top: 0,
+    width: 6,
+    height: 6,
+    borderRadius: 100,
+    backgroundColor: "#EF4444",
+  },
+  dotOnSelected: {
+    backgroundColor: "#DC2626",
+  },
   yearModal: { marginHorizontal: 20, padding: 14, borderRadius: 12 },
   yearTitle: { marginBottom: 6, fontWeight: "700" },
   yearActions: {
