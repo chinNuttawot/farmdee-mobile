@@ -54,7 +54,7 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const fmtDate = (d: Date) =>
   `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-const monthRange = (yearCE: number, month0: number) => {
+export const monthRange = (yearCE: number, month0: number) => {
   const from = new Date(yearCE, month0, 1);
   const to = new Date(yearCE, month0 + 1, 0);
   return { from: fmtDate(from), to: fmtDate(to) };

@@ -20,7 +20,7 @@ import TaskSearchBar from "../../components/Tasks/TaskSearchBar";
 import TaskEmptyCard from "../../components/Tasks/TaskEmptyCard";
 import DayResultText from "../../components/Tasks/DayResultText";
 import MultiCreateTasksModal from "../../components/Tasks/MultiCreateTasksModal";
-import { tasksService } from "@/service/index";
+import { tasksService, tasksDaysService } from "@/service/index";
 
 // ✅ services สำหรับประกาศ
 import { getAnnouncementsService } from "@/service";
@@ -72,6 +72,17 @@ type BackendAnnouncement = {
   updated_at: string;
 };
 
+/** ===== Helpers สำหรับช่วงเดือน (ใช้กับ fetchDaysForMonth) ===== */
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const fmtDate = (d: Date) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+export const monthRange = (yearCE: number, month0: number) => {
+  const from = new Date(yearCE, month0, 1);
+  const to = new Date(yearCE, month0 + 1, 0);
+  return { from: fmtDate(from), to: fmtDate(to) };
+};
+
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<boolean>(false); // โมดอลสร้างหลายงาน
@@ -79,6 +90,13 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [tasks, setTasks] = useState<TaskWithMeta[]>([]);
   const [loading, setLoading] = useState<boolean>(false); // ✅ loading สำหรับ tasks
+
+  // ====== สำหรับมาร์กวันที่มีงานใน MiniCalendar ======
+  const [marked, setMarked] = useState<Set<string>>(new Set());
+  const [viewYM, setViewYM] = useState<{ y: number; m0: number }>({
+    y: selectedDate.getFullYear(),
+    m0: selectedDate.getMonth(),
+  });
 
   // ====== Announcements modal (เฉพาะ is_active=true) ======
   const [annLoading, setAnnLoading] = useState(false);
@@ -125,7 +143,7 @@ export default function Dashboard() {
     loadAnnouncements();
   }, [loadAnnouncements]);
 
-  // ====== Tasks ======
+  // ====== ดึงรายการงานของวัน ======
   useEffect(() => {
     getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +168,7 @@ export default function Dashboard() {
 
       const Profile = JSON.parse(await StorageUtility.get(PROFILE_KEY));
       params.userId = Profile.id;
+
       const { data } = await tasksService(params);
       const items = Array.isArray(data?.items)
         ? (data.items as TaskWithMeta[])
@@ -161,6 +180,37 @@ export default function Dashboard() {
       setLoading(false); // ✅ จบโหลด
     }
   };
+
+  /** ====== ดึงรายการ “วันที่มีงาน” ของเดือน (สำหรับมาร์กในปฏิทิน) ====== */
+  const fetchDaysForMonth = useCallback(
+    async (yearCE: number, month0: number) => {
+      try {
+        const { from, to } = monthRange(yearCE, month0);
+        const params: Record<string, any> = { from, to, detail: false };
+
+        // ส่งตัวกรองเหมือนหน้า list เพื่อให้วันมาร์กสอดคล้อง
+        if (status && status !== "ทั้งหมด") params.status = status;
+        if ((search ?? "").trim()) {
+          params.title = search.trim().split(/\s+/).join("|");
+        }
+
+        const { data } = await tasksDaysService(params);
+        const raw: string[] = data?.days ?? [];
+        const days = (raw || [])
+          .filter(Boolean)
+          .map((s) => String(s).split("T")[0]);
+        setMarked(new Set(days));
+      } catch (err) {
+        console.warn("fetchDaysForMonth error:", err);
+      }
+    },
+    [status, search]
+  );
+
+  // เรียกเมื่อเดือนที่แสดงเปลี่ยน หรือเมื่อเงื่อนไขกรองเปลี่ยน
+  useEffect(() => {
+    fetchDaysForMonth(viewYM.y, viewYM.m0);
+  }, [viewYM, status, search, fetchDaysForMonth]);
 
   const filtered = useMemo(() => tasks, [tasks]);
 
@@ -184,7 +234,23 @@ export default function Dashboard() {
           value={selectedDate}
           onChange={(d) => {
             // กัน spam เปลี่ยนวันตอนกำลังโหลด
-            if (!loading) setSelectedDate(startOfDay(d));
+            if (!loading) {
+              const dd = startOfDay(d);
+              setSelectedDate(dd);
+              // อัปเดตเดือนที่แสดง หากข้ามเดือน
+              const y = dd.getFullYear();
+              const m0 = dd.getMonth();
+              if (y !== viewYM.y || m0 !== viewYM.m0) {
+                setViewYM({ y, m0 });
+              }
+            }
+          }}
+          /** ✅ ส่งวันมาร์กลงปฏิทิน */
+          markedDates={marked}
+          /** ✅ แจ้งเมื่อเปลี่ยนเดือนจาก header ของปฏิทิน */
+          onMonthChange={(y, m0) => {
+            setViewYM({ y, m0 });
+            fetchDaysForMonth(y, m0);
           }}
         />
 

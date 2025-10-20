@@ -9,9 +9,9 @@ export default function TaskEmptyCard() {
         <Text variant="titleMedium" style={{ marginBottom: 4 }}>
           ยังไม่มีงานในวันนี้
         </Text>
-        <Text style={{ color: "#6B7280" }}>
+        {/* <Text style={{ color: "#6B7280" }}>
           ลองเปลี่ยนวันที่/สถานะ หรือสร้างงานใหม่ด้วยปุ่ม “+”
-        </Text>
+        </Text> */}
       </Card.Content>
     </Card>
   );
