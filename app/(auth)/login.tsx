@@ -163,7 +163,7 @@ export default function Login() {
                   variant="titleLarge"
                   style={{ color: theme.colors.primary, fontWeight: "800" }}
                 >
-                  🌱 FarmDee
+                  🌱 Me Boss
                 </Text>
                 <Text
                   variant="labelMedium"
