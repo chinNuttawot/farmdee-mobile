@@ -27,7 +27,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="emp-salary"
         options={{
-          title: "เงินเดือน",
+          title: "สลิปเงินเดือน",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cash-multiple"

@@ -15,9 +15,11 @@ import {
 } from "react-native-paper";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { listPayrollsService } from "@/service";
+import { listPayrollsService, previewService } from "@/service";
 import { PROFILE_KEY } from "@/service/profileService/lindex";
 import { StorageUtility } from "@/providers/storageUtility";
+import { ymNow } from "../salary";
+import { fmt } from "@/components/SalarySlipFormModal";
 
 /** ========= Types from backend ========= */
 type PayrollDetail = {
@@ -338,6 +340,7 @@ export default function Tasks() {
   const [rows, setRows] = useState<SalarySlip[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [grossAmount, setGrossAmount] = useState("0.00");
   const [snack, setSnack] = useState<{ visible: boolean; msg: string }>({
     visible: false,
     msg: "",
@@ -361,8 +364,17 @@ export default function Tasks() {
     }
   }, []);
 
+  const getPreview = useCallback(async () => {
+    const month = ymNow();
+    const profileRaw = await StorageUtility.get(PROFILE_KEY);
+    const profile = JSON.parse(profileRaw || "{}");
+    const { data } = await previewService({ userId: profile.id, month });
+    setGrossAmount(fmt(data.grossAmount));
+  }, []);
+
   useEffect(() => {
     load();
+    getPreview();
   }, [load]);
 
   const onRefresh = useCallback(async () => {
@@ -373,6 +385,7 @@ export default function Tasks() {
       const { data } = await listPayrollsService({ userId: profile.id });
       const items: PayrollItem[] = data?.items ?? [];
       setRows(items.map(mapItem));
+      getPreview();
     } catch (err: any) {
       setSnack({
         visible: true,
@@ -574,7 +587,7 @@ export default function Tasks() {
 
   return (
     <>
-      <Header title="เงินเดือน" backgroundColor="#2E7D32" color="white" />
+      <Header title="สลิปเงินเดือน" backgroundColor="#2E7D32" color="white" />
 
       {loading ? (
         <View
@@ -584,22 +597,27 @@ export default function Tasks() {
           <Text style={{ marginTop: 8 }}>กำลังโหลด...</Text>
         </View>
       ) : (
-        <FlatList
-          contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
-          data={list}
-          keyExtractor={(i) => i.id}
-          renderItem={({ item }) => (
-            <SalaryCard item={item} onExport={exportPDF} />
-          )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View style={{ padding: 24, alignItems: "center" }}>
-              <Text>ยังไม่มีสลิปเงินเดือน</Text>
-            </View>
-          }
-        />
+        <>
+          <View style={{ padding: 16, backgroundColor: "#F3F4F6" }}>
+            <Text>ยอดรวมเงินเดือนล่าสุด (โดยประมาณ) : {grossAmount}</Text>
+          </View>
+          <FlatList
+            contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
+            data={list}
+            keyExtractor={(i) => i.id}
+            renderItem={({ item }) => (
+              <SalaryCard item={item} onExport={exportPDF} />
+            )}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              <View style={{ padding: 24, alignItems: "center" }}>
+                <Text>ยังไม่มีสลิปเงินเดือน</Text>
+              </View>
+            }
+          />
+        </>
       )}
 
       <Snackbar

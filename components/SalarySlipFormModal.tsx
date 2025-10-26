@@ -74,6 +74,13 @@ type Props = {
   previewDetails?: PreviewDetail[];
 };
 
+export const fmt = (n: number) =>
+  "฿" +
+  (isNaN(n) ? 0 : n).toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
 const PRIMARY = "#2E7D32";
 const PRIMARY_TEXT = "#1B5E20";
 const BLUE = "#4F86FF";
@@ -180,10 +187,6 @@ export default function SalarySlipFormModal({
     }),
     [slideAnim]
   );
-
-  const fmt = (n: number) =>
-    "฿" +
-    (isNaN(n) ? 0 : n).toLocaleString("th-TH", { minimumFractionDigits: 0 });
 
   return (
     <Portal>

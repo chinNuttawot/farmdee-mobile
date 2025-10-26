@@ -35,14 +35,16 @@ export default function Tasks() {
   const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
   const normalize = (list: any[]): Expense[] =>
-    (list ?? []).map((v: any) => ({
-      ...v,
-      id: v?.id,
-      amount: n(v?.amount),
-      work_date: v?.work_date
-        ? moment(v.work_date).format("YYYY-MM-DD")
-        : undefined,
-    }));
+    (list ?? [])
+      .map((v: any) => ({
+        ...v,
+        id: v?.id,
+        amount: n(v?.amount),
+        work_date: v?.work_date
+          ? moment(v.work_date).format("YYYY-MM-DD")
+          : undefined,
+      }))
+      .sort((a, b) => b.id - a.id); // เรียงจากใหม่ไปเก่า
 
   const load = useCallback(async () => {
     try {

@@ -52,7 +52,7 @@ export default function ExpenseItem({
           </Text>
         )}
 
-        {item.type !== "labor" && (
+        {/* {item.type !== "labor" && ( */}
           <View style={styles.actionRow}>
             <IconButton
               icon="pencil"
@@ -71,7 +71,7 @@ export default function ExpenseItem({
               style={styles.actionBtn}
             />
           </View>
-        )}
+        {/* )} */}
       </Card.Content>
     </Card>
   );

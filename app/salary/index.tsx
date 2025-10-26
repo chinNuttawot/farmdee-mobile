@@ -423,7 +423,9 @@ export default function SalaryScreen() {
       item.date
     )}</div>
     </div>
-    <div class="badge">${escapeHtml(status === 'Paid' ? "ชำระแล้ว" : "ยังไม่ชำระ")}</div>
+    <div class="badge">${escapeHtml(
+      status === "Paid" ? "ชำระแล้ว" : "ยังไม่ชำระ"
+    )}</div>
   </div>
 
   <table>
@@ -781,7 +783,7 @@ export default function SalaryScreen() {
   );
 }
 
-function ymNow() {
+export function ymNow() {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

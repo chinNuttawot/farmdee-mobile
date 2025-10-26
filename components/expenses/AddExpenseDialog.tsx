@@ -209,8 +209,10 @@ export default function AddExpenseDialog({
 
             <Text style={styles.fieldLabelV2}>ประเภท</Text>
             <View style={styles.segmentWrapV2}>
-              {/* {(["labor", "fuel", "material"] as ExpenseType[]).map((t) => { */}
-              {(["fuel", "material"] as ExpenseType[]).map((t) => {
+              {(["labor", "fuel", "material"] as ExpenseType[]).map((t) => {
+                {
+                  /* {(["fuel", "material"] as ExpenseType[]).map((t) => { */
+                }
                 const selected = type === t;
                 return (
                   <Chip
@@ -238,19 +240,6 @@ export default function AddExpenseDialog({
                 );
               })}
             </View>
-
-            <Text style={styles.fieldLabelV2}>รายละเอียด</Text>
-            <TextInput
-              mode="outlined"
-              value={jobNote}
-              onChangeText={setJobNote}
-              placeholder="รายละเอียดงาน/หมายเหตุ"
-              style={styles.inputOutlined}
-              left={<TextInput.Icon icon="note-text-outline" />}
-              dense
-              returnKeyType="next"
-              blurOnSubmit={false}
-            />
 
             <Text style={styles.fieldLabelV2}>จำนวน/หน่วย</Text>
             <TextInput
@@ -308,6 +297,17 @@ export default function AddExpenseDialog({
               // onSubmitEditing={submit}
               returnKeyType="done"
               blurOnSubmit={true}
+            />
+
+            <Text style={styles.fieldLabelV2}>รายละเอียด</Text>
+            <TextInput
+              mode="outlined"
+              label="รายละเอียดงาน"
+              value={jobNote}
+              onChangeText={setJobNote}
+              style={[styles.inputOutlined, { height: 120 }]}
+              multiline
+              returnKeyType="next"
             />
           </ScrollView>
 

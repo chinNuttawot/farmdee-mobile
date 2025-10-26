@@ -357,12 +357,12 @@ export default function Dashboard() {
       </Portal>
 
       {/* ====== โมดอลสร้างงานหลายรายการ (ของเดิม) ====== */}
-      <MultiCreateTasksModal
+      {/* <MultiCreateTasksModal
         visible={open}
         onDismiss={() => {
           setOpen(false);
         }}
-      />
+      /> */}
     </>
   );
 }
